@@ -92,28 +92,17 @@ export const analyzePresidentialCandidate = async (name: string, party: string):
   }
 
   const prompt = `
-    Conduct a deep OSINT analysis on the Ugandan presidential candidate: ${name} (${party}) for the 2026 election.
+    Conduct a deep OSINT (Open Source Intelligence) forensic analysis on the Ugandan presidential candidate: ${name} (${party}) for the 2026 election.
     
-    Use Google Search to find the latest news, manifesto pledges, and controversies.
+    Use Google Search to find the latest news, manifesto pledges, financial disclosures, and controversies.
     
     Then, generate a STRICT JSON response matching the following structure. 
     
     **IMPORTANT: For the 'grandStrategy' field:**
-    You are "The Grand Strategist." Synthesize the political wisdom of:
-    1. Sun Tzu (The Art of War)
-    2. Alexander the Great (Speed & Decisive Action)
-    3. Genghis Khan (Mobility & Psychological Warfare)
-    4. Napoleon Bonaparte (Concentration of Force)
-    5. Scipio Africanus (Adaptability & Studying the Enemy)
-    6. Carl von Clausewitz (Center of Gravity)
-    7. Hannibal (Asymmetric Tactics)
-    8. Erwin Rommel (Momentum & Surprise)
-    9. Che Guevara (Guerrilla Warfare & Mobilization)
-    10. John Boyd (OODA Loop)
-    11. Robert Moses (Bureaucratic Power & Infrastructure)
-    
-    Create a cohesive 3-step strategy for this specific candidate to win 2026.
-    Determine WHY and HOW the win will happen, citing specific ideologies from the list above (e.g., "Applying John Boyd's OODA loop...").
+    You are "The Grand Strategist." Synthesize the political wisdom of historical figures (Sun Tzu, Machiavelli, etc.) to create a cohesive strategy.
+
+    **IMPORTANT: For 'digitalFootprint' and 'financialIntel':**
+    Provide a forensic assessment.
 
     Output JSON Structure:
     {
@@ -138,7 +127,10 @@ export const analyzePresidentialCandidate = async (name: string, party: string):
         "education": "Highest Degree / University",
         "lifestyle": "Description of wealth/lifestyle visibility",
         "controversies": ["Controversy 1", "Controversy 2"],
-        "politicalAnalysis": "Strategic Political SitRep: A detailed situation report on their current political standing, vulnerabilities, and momentum."
+        "politicalAnalysis": "Strategic Political SitRep: A detailed situation report on their current political standing, vulnerabilities, and momentum.",
+        "digitalFootprint": "Forensic analysis of their social media reach, bot activity presence, digital sentiment manipulation, and online mobilization strength.",
+        "financialIntel": "OSINT overview of known funding sources, business interests, donor networks, and financial backing.",
+        "networkMap": ["Key Ally 1", "Advisor Name", "International Partner", "Regional Power Broker"]
       },
       "socialPulse": {
         "sentiment": { "positive": 0-100, "neutral": 0-100, "negative": 0-100 },

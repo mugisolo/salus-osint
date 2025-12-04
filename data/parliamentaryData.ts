@@ -1,4 +1,5 @@
-import { ParliamentaryCandidate, ConstituencyProfile } from '../types';
+
+import { ParliamentaryCandidate, ConstituencyProfile, OSINTBackground } from '../types';
 
 // Coordinate Mapping for Districts/Major Towns to place constituencies
 const DISTRICT_COORDS: Record<string, [number, number]> = {
@@ -54,7 +55,13 @@ const DISTRICT_COORDS: Record<string, [number, number]> = {
   'Nakasongola': [1.3000, 32.4500], 'Masaka': [-0.3411, 31.7361], 'Kalungu': [-0.1000, 31.7667],
   'Bukomansimbi': [-0.1500, 31.6000], 'Lwengo': [-0.4000, 31.4000], 'Sembabule': [-0.1000, 31.4500],
   'Lyantonde': [-0.4000, 31.1500], 'Rakai': [-0.7000, 31.4000], 'Kyotera': [-0.6500, 31.5000],
-  'Kalangala': [-0.6000, 32.2000]
+  'Kalangala': [-0.6000, 32.2000],
+
+  // Cities
+  'Arua City': [3.0303, 30.9073], 'Gulu City': [2.7724, 32.2881], 'Jinja City': [0.4479, 33.2026],
+  'Fort Portal City': [0.6545, 30.2744], 'Mbarara City': [-0.6072, 30.6545], 'Masaka City': [-0.3411, 31.7361],
+  'Mbale City': [1.0782, 34.1765], 'Lira City': [2.2472, 32.9000], 'Hoima City': [1.4331, 31.3524],
+  'Soroti City': [1.7146, 33.6111]
 };
 
 // Helper to determine Independent status from symbols
@@ -69,334 +76,2760 @@ const getPartyFromSymbol = (partyOrSymbol: string) => {
   return partyOrSymbol; // Return as is (NRM, NUP, etc)
 };
 
-const RAW_CANDIDATES: Omit<ParliamentaryCandidate, 'sentimentScore' | 'projectedVoteShare' | 'mentions' | 'coordinates'>[] = [
-  // --- FROM UPLOADED NOMINATION REPORT (Pages 1-99) ---
-  
-  // APAC
-  { id: '1', name: 'OBONG PETER ACUDA', constituency: 'Maruzi County', party: 'UPC', category: 'Constituency' },
-  { id: '2', name: 'OPETO MOSES', constituency: 'Maruzi County', party: 'NRM', category: 'Constituency' },
-  { id: '3', name: 'AKORA MAXWELL EBONG PATRICK', constituency: 'Apac Municipality', party: 'UPC', category: 'Constituency' },
-  { id: '4', name: 'NEKYON ISAAC EMMA ODONGO', constituency: 'Apac Municipality', party: 'NRM', category: 'Constituency' },
-  { id: '5', name: 'OCAN PATRICK', constituency: 'Apac Municipality', party: 'Independent', category: 'Constituency' },
-  { id: '6', name: 'OKELLO NELSON', constituency: 'Maruzi North County', party: 'UPC', category: 'Constituency' },
-  { id: '7', name: 'OTIM BERNARD', constituency: 'Maruzi North County', party: 'NRM', category: 'Constituency' },
-  // ARUA
-  { id: '10', name: 'ADRADU EMMANUEL', constituency: 'Vurra County', party: 'Independent', category: 'Constituency' },
-  { id: '11', name: 'ADRIKO YOVAN', constituency: 'Vurra County', party: 'Independent', category: 'Constituency' },
-  { id: '12', name: 'ANGUYO JOHN', constituency: 'Vurra County', party: 'FDC', category: 'Constituency' },
-  { id: '13', name: 'ARIDRU GABRIEL AJEDRA', constituency: 'Vurra County', party: 'Independent', category: 'Constituency' },
-  { id: '14', name: 'LENIA CHARITY KEVIN', constituency: 'Vurra County', party: 'NRM', category: 'Constituency' },
-  { id: '15', name: 'MADIRA KEFA', constituency: 'Vurra County', party: 'Independent', category: 'Constituency' },
-  // BUNDIBUGYO
-  { id: '30', name: 'BAGUMA IDDI', constituency: 'Bwamba County', party: 'Independent', category: 'Constituency' },
-  { id: '31', name: 'NSEKANABO GODSON', constituency: 'Bwamba County', party: 'Independent', category: 'Constituency' },
-  { id: '32', name: 'NTABAZI HARRIET', constituency: 'Bwamba County', party: 'NRM', category: 'Constituency' },
-  { id: '33', name: 'BOGERE NICOLUS', constituency: 'Bughendera County', party: 'FDC', category: 'Constituency' },
-  { id: '34', name: 'BWAMBALE GEOFREY', constituency: 'Bughendera County', party: 'NUP', category: 'Constituency' },
-  { id: '35', name: 'BYAMUKAMA COSTA', constituency: 'Bughendera County', party: 'Independent', category: 'Constituency' },
-  { id: '36', name: 'KIIZA ACROBERT MOSES', constituency: 'Bughendera County', party: 'NRM', category: 'Constituency' },
-  { id: '37', name: 'MBALIBULHA CHRISTOPHER KIBANZANGA TABAN', constituency: 'Bughendera County', party: 'Independent', category: 'Constituency' },
-  { id: '38', name: 'THEMBO SAMUEL MAKENZI', constituency: 'Bughendera County', party: 'Independent', category: 'Constituency' },
-  // BUSHENYI
-  { id: '40', name: 'AINOMUGISHA DORCUS', constituency: 'Igara County East', party: 'DP', category: 'Constituency' },
-  { id: '41', name: 'MATSIKO DAN', constituency: 'Igara County East', party: 'FDC', category: 'Constituency' },
-  { id: '42', name: 'MAWANDA MICHAEL MARANGA', constituency: 'Igara County East', party: 'NRM', category: 'Constituency' },
-  { id: '43', name: 'MUGIZI YASONI', constituency: 'Igara County East', party: 'Independent', category: 'Constituency' },
-  { id: '44', name: 'NIMWESIGA HERBERT', constituency: 'Igara County East', party: 'Independent', category: 'Constituency' },
-  { id: '45', name: 'RUKUNDO BENON', constituency: 'Igara County East', party: 'Independent', category: 'Constituency' },
-  { id: '46', name: 'TANGARO ARTHUR', constituency: 'Igara County East', party: 'Independent', category: 'Constituency' },
-  { id: '47', name: 'TUMWINE EBON', constituency: 'Igara County East', party: 'Independent', category: 'Constituency' },
-  { id: '48', name: 'TUSHABE ALLEN', constituency: 'Igara County East', party: 'Independent', category: 'Constituency' },
-  { id: '49', name: 'AMANYA COHEN KYAMPENE', constituency: 'Igara County West', party: 'NRM', category: 'Constituency' },
-  { id: '50', name: 'MACHO MUBARAK', constituency: 'Igara County West', party: 'Independent', category: 'Constituency' },
-  { id: '51', name: 'MUHABUZI HORACE', constituency: 'Igara County West', party: 'Independent', category: 'Constituency' },
-  { id: '52', name: 'MUSINGUZI ARNOLD MUGISHA', constituency: 'Igara County West', party: 'Independent', category: 'Constituency' },
-  { id: '53', name: 'NIMWESIGA DAN', constituency: 'Igara County West', party: 'Independent', category: 'Constituency' },
-  { id: '54', name: 'TUGUME BONIFACE', constituency: 'Igara County West', party: 'Independent', category: 'Constituency' },
-  { id: '55', name: 'TUMURAMYE ROBERT BAHIGA', constituency: 'Igara County West', party: 'Independent', category: 'Constituency' },
-  { id: '56', name: 'TUMUTEGYERIZE ONESMAS', constituency: 'Igara County West', party: 'Independent', category: 'Constituency' },
-  { id: '57', name: 'AHABWE ELLY RUKIRA', constituency: 'Bushenyi -Ishaka Municipality', party: 'UPC', category: 'Constituency' },
-  { id: '58', name: 'BASSAJJA IDDI', constituency: 'Bushenyi -Ishaka Municipality', party: 'NRM', category: 'Constituency' },
-  { id: '59', name: 'BEINOMUGISHA GODFREY', constituency: 'Bushenyi -Ishaka Municipality', party: 'NUP', category: 'Constituency' },
-  { id: '60', name: 'NAMANYA EDWIN', constituency: 'Bushenyi -Ishaka Municipality', party: 'FDC', category: 'Constituency' },
-  { id: '61', name: 'NDYAKIRA NICHOLAS MUHEREZA', constituency: 'Bushenyi -Ishaka Municipality', party: 'Independent', category: 'Constituency' },
-  { id: '62', name: 'TUKUNDANE CASBART', constituency: 'Bushenyi -Ishaka Municipality', party: 'Independent', category: 'Constituency' },
-  { id: '63', name: 'TWAHIKA DENIS', constituency: 'Bushenyi -Ishaka Municipality', party: 'Independent', category: 'Constituency' },
-  { id: '64', name: 'TWINOMUGISHA EDWIN', constituency: 'Bushenyi -Ishaka Municipality', party: 'Independent', category: 'Constituency' },
-  // GULU
-  { id: '65', name: 'OKELLO PATRICK ONGUTI', constituency: 'Aswa County', party: 'DP', category: 'Constituency' },
-  { id: '66', name: 'OKOT WALTER', constituency: 'Aswa County', party: 'NUP', category: 'Constituency' },
-  { id: '67', name: 'OLWA JOHNSON AGARA', constituency: 'Aswa County', party: 'Independent', category: 'Constituency' },
-  { id: '68', name: 'ORINGA JAMES', constituency: 'Aswa County', party: 'FDC', category: 'Constituency' },
-  { id: '69', name: 'WOKORACH SIMON PETER', constituency: 'Aswa County', party: 'NRM', category: 'Constituency' },
-  // HOIMA
-  { id: '70', name: 'KATO HABERT', constituency: 'Bugahya County', party: 'ANT', category: 'Constituency' },
-  { id: '71', name: 'TUGUME ALLAN CLEFFORD', constituency: 'Bugahya County', party: 'NUP', category: 'Constituency' },
-  { id: '72', name: 'WAKABI PIUS', constituency: 'Bugahya County', party: 'NRM', category: 'Constituency' },
-  { id: '73', name: 'KARUBANGA DAVID', constituency: 'Kigorobya County', party: 'Independent', category: 'Constituency' },
-  { id: '74', name: 'KASIGWA GERALD BIHEMAISO', constituency: 'Kigorobya County', party: 'NRM', category: 'Constituency' },
-  { id: '75', name: 'MUGISA CHRISPUS', constituency: 'Kigorobya County', party: 'NUP', category: 'Constituency' },
-  // IGANGA
-  { id: '76', name: 'BADOGI ISMAIL WAGUMA', constituency: 'Kigulu County North', party: 'Independent', category: 'Constituency' },
-  { id: '77', name: 'GUBI KENNETH', constituency: 'Kigulu County North', party: 'Independent', category: 'Constituency' },
-  { id: '78', name: 'KISIRA PETER', constituency: 'Kigulu County North', party: 'DF', category: 'Constituency' },
-  { id: '79', name: 'KUNGU SAMUEL BAMUTEEZE', constituency: 'Kigulu County North', party: 'NRM', category: 'Constituency' },
-  { id: '80', name: 'KUSASIRA SAMUEL', constituency: 'Kigulu County North', party: 'ANT', category: 'Constituency' },
-  { id: '81', name: 'MUKAKANYA DEREK', constituency: 'Kigulu County North', party: 'FDC', category: 'Constituency' },
-  { id: '82', name: 'MWESIGWA SAMUEL', constituency: 'Kigulu County North', party: 'Independent', category: 'Constituency' },
-  { id: '83', name: 'NTAMBI MUHAMMAD RAMADHAN', constituency: 'Kigulu County North', party: 'NUP', category: 'Constituency' },
-  { id: '84', name: 'KAGYERERO RONALD', constituency: 'Kigulu County South', party: 'FDC', category: 'Constituency' },
-  { id: '85', name: 'KAYEMBA PATRICK', constituency: 'Kigulu County South', party: 'NRM', category: 'Constituency' },
-  { id: '86', name: 'KIIZA ANDREW NAMITEGO KALUYA', constituency: 'Kigulu County South', party: 'NUP', category: 'Constituency' },
-  { id: '87', name: 'MUKISA RICHARD STANLEY NALUWAYIRO', constituency: 'Kigulu County South', party: 'DF', category: 'Constituency' },
-  { id: '88', name: 'MUWUMA MILTON REINHARD KALULU', constituency: 'Kigulu County South', party: 'Independent', category: 'Constituency' },
-  { id: '89', name: 'NTULUME YUSUF KYAFU', constituency: 'Kigulu County South', party: 'Independent', category: 'Constituency' },
-  { id: '90', name: 'SEBUKAIRE ABDULRAHMAAN ANDREW', constituency: 'Kigulu County South', party: 'Independent', category: 'Constituency' },
-  { id: '91', name: 'WAISWA IAN', constituency: 'Kigulu County South', party: 'Independent', category: 'Constituency' },
-  { id: '92', name: 'BAMUGEMYE DELLIX RICHARD', constituency: 'Iganga Municipality', party: 'Independent', category: 'Constituency' },
-  { id: '93', name: 'BIKONDO ABDALLAH', constituency: 'Iganga Municipality', party: 'JEEMA', category: 'Constituency' },
-  { id: '94', name: 'BIRUNGI JOSEPHINE', constituency: 'Iganga Municipality', party: 'Independent', category: 'Constituency' },
-  { id: '95', name: 'BUWASO MOSES', constituency: 'Iganga Municipality', party: 'Independent', category: 'Constituency' },
-  { id: '96', name: 'MUDIOBOLE ABEDI NASSER', constituency: 'Iganga Municipality', party: 'NUP', category: 'Constituency' },
-  { id: '97', name: 'MUGEMA PETER', constituency: 'Iganga Municipality', party: 'Independent', category: 'Constituency' },
-  { id: '98', name: 'MUKALU MOHAMED', constituency: 'Iganga Municipality', party: 'Independent', category: 'Constituency' },
-  { id: '99', name: 'MUKOSE HUZAIMA', constituency: 'Iganga Municipality', party: 'DP', category: 'Constituency' },
-  { id: '100', name: 'MULONDO JOHN', constituency: 'Iganga Municipality', party: 'Independent', category: 'Constituency' },
-  { id: '101', name: 'NAMUDIBA KUTESA VIVIAN', constituency: 'Iganga Municipality', party: 'Independent', category: 'Constituency' },
-  { id: '102', name: 'NKOYOYO TREVOR', constituency: 'Iganga Municipality', party: 'DF', category: 'Constituency' },
-  { id: '103', name: 'OJASI SWAIBU', constituency: 'Iganga Municipality', party: 'NRM', category: 'Constituency' },
-  // JINJA
-  { id: '104', name: 'BASAKANA HANNINGTON', constituency: 'Butembe County', party: 'ANT', category: 'Constituency' },
-  { id: '105', name: 'KABONDO JACOB', constituency: 'Butembe County', party: 'NRM', category: 'Constituency' },
-  { id: '106', name: 'KABULE SANDE CHARLES', constituency: 'Butembe County', party: 'Independent', category: 'Constituency' },
-  { id: '107', name: 'KAPYATE ABEL', constituency: 'Butembe County', party: 'Independent', category: 'Constituency' },
-  { id: '108', name: 'KIIRYA GRACE PADDY WANZALA', constituency: 'Butembe County', party: 'FDC', category: 'Constituency' },
-  { id: '109', name: 'MANDWA IBRAHIM', constituency: 'Butembe County', party: 'Independent', category: 'Constituency' },
-  { id: '110', name: 'MUWANIKA KENNETH MUKULU', constituency: 'Butembe County', party: 'Independent', category: 'Constituency' },
-  { id: '111', name: 'NNATABI MARIA LEDOCHOWSKA', constituency: 'Butembe County', party: 'NUP', category: 'Constituency' },
-  { id: '112', name: 'OKUMU SHABAN', constituency: 'Butembe County', party: 'Independent', category: 'Constituency' },
-  { id: '113', name: 'ANYOLE INNOCENT', constituency: 'Kagoma County', party: 'NUP', category: 'Constituency' },
-  { id: '114', name: 'AZIRA KENETH', constituency: 'Kagoma County', party: 'Independent', category: 'Constituency' },
-  { id: '115', name: 'MAGAYA TIMOTHY', constituency: 'Kagoma County', party: 'Independent', category: 'Constituency' },
-  { id: '116', name: 'MUNYIRWA FREDERICK', constituency: 'Kagoma County', party: 'NRM', category: 'Constituency' },
-  { id: '117', name: 'NABUGO SHAFIC', constituency: 'Kagoma County', party: 'DP', category: 'Constituency' },
-  { id: '118', name: 'SALAMUKA FRED LUBAALE', constituency: 'Kagoma County', party: 'Independent', category: 'Constituency' },
-  { id: '119', name: 'WALYOMU MOSES MUWANIKA', constituency: 'Kagoma County', party: 'Independent', category: 'Constituency' },
-  { id: '120', name: 'AKALYAAMAWA SAMUEL', constituency: 'Kagoma North County', party: 'Independent', category: 'Constituency' },
-  { id: '121', name: 'BALIDAWA DANIEL', constituency: 'Kagoma North County', party: 'Independent', category: 'Constituency' },
-  { id: '122', name: 'BATESAAKI MENYA PETER AGGREY', constituency: 'Kagoma North County', party: 'FDC', category: 'Constituency' },
-  { id: '123', name: 'BUDHUGO ISA', constituency: 'Kagoma North County', party: 'Independent', category: 'Constituency' },
-  { id: '124', name: 'DHIKUSOOKA GYAVIIRA', constituency: 'Kagoma North County', party: 'Independent', category: 'Constituency' },
-  { id: '125', name: 'KINTU ALEX BRANDON', constituency: 'Kagoma North County', party: 'NRM', category: 'Constituency' },
-  { id: '126', name: 'ODWORI JOHN', constituency: 'Kagoma North County', party: 'NUP', category: 'Constituency' },
-  { id: '127', name: 'WANDERA PAUL', constituency: 'Kagoma North County', party: 'Independent', category: 'Constituency' },
-  // KABALE
-  { id: '130', name: 'AKAMPUMUZA JAMES RUTANGA', constituency: 'Ndorwa County East', party: 'Independent', category: 'Constituency' },
-  { id: '131', name: 'BEGUMISA PROTAZIO', constituency: 'Ndorwa County East', party: 'NRM', category: 'Constituency' },
-  { id: '132', name: 'KYOKWIJUKA ALEXANDER', constituency: 'Ndorwa County East', party: 'Independent', category: 'Constituency' },
-  { id: '133', name: 'NIWAGABA WILFRED', constituency: 'Ndorwa County East', party: 'Independent', category: 'Constituency' },
-  { id: '134', name: 'SUNDAY ELIAS', constituency: 'Ndorwa County East', party: 'NUP', category: 'Constituency' },
-  { id: '135', name: 'ABOMUGISHA BOAZ RUGIREHE', constituency: 'Ndorwa County West', party: 'Independent', category: 'Constituency' },
-  { id: '136', name: 'BAHATI DAVID', constituency: 'Ndorwa County West', party: 'Independent', category: 'Constituency' },
-  { id: '137', name: 'MATSIKO GILBERT', constituency: 'Ndorwa County West', party: 'Independent', category: 'Constituency' },
-  { id: '138', name: 'NATURINDA ELIAB', constituency: 'Ndorwa County West', party: 'NRM', category: 'Constituency' },
-  { id: '139', name: 'AINE JESSY', constituency: 'Kabale Municipality', party: 'FDC', category: 'Constituency' },
-  { id: '140', name: 'ARINAITWE BRIAN DENIS', constituency: 'Kabale Municipality', party: 'Independent', category: 'Constituency' },
-  { id: '141', name: 'BAKASHABA WILLIAM', constituency: 'Kabale Municipality', party: 'Independent', category: 'Constituency' },
-  { id: '142', name: 'BARYAYANGA ANDREW AJA', constituency: 'Kabale Municipality', party: 'NRM', category: 'Constituency' },
-  { id: '143', name: 'KAMARA NICHOLAS THADEUS', constituency: 'Kabale Municipality', party: 'PFF', category: 'Constituency' },
-  { id: '144', name: 'MUHWEZI ALEX EDGAR', constituency: 'Kabale Municipality', party: 'Independent', category: 'Constituency' },
-  { id: '145', name: 'NABAASA DAN MUSINGUZI', constituency: 'Kabale Municipality', party: 'Independent', category: 'Constituency' },
-  // KAMPALA
-  { id: '160', name: 'AGABA MUZOORA', constituency: 'Kampala Central Division', party: 'ANT', category: 'Constituency' },
-  { id: '161', name: 'DAVID LEWIS RUBONGOYA', constituency: 'Kampala Central Division', party: 'NUP', category: 'Constituency' },
-  { id: '162', name: 'KABANDA MINSA NABBENGO', constituency: 'Kampala Central Division', party: 'NRM', category: 'Constituency' },
-  { id: '163', name: 'KARUHANGA RINA', constituency: 'Kampala Central Division', party: 'Independent', category: 'Constituency' },
-  { id: '164', name: 'KASOZI ABDUL WAHAB', constituency: 'Kampala Central Division', party: 'JEEMA', category: 'Constituency' },
-  { id: '165', name: 'KIWUWA RONALD', constituency: 'Kampala Central Division', party: 'Independent', category: 'Constituency' },
-  { id: '166', name: 'KUSHABA SUSAN', constituency: 'Kampala Central Division', party: 'Independent', category: 'Constituency' },
-  { id: '167', name: 'LUZZI ABRAHAM', constituency: 'Kampala Central Division', party: 'Independent', category: 'Constituency' },
-  { id: '168', name: 'LWANGA ALLAN', constituency: 'Kampala Central Division', party: 'Independent', category: 'Constituency' },
-  { id: '169', name: 'MINAWA FAROUK', constituency: 'Kampala Central Division', party: 'FDC', category: 'Constituency' },
-  { id: '170', name: 'MUHANGI MOSES KAPERE', constituency: 'Kampala Central Division', party: 'Independent', category: 'Constituency' },
-  { id: '171', name: 'MUTESA MUHSIN', constituency: 'Kampala Central Division', party: 'EPU', category: 'Constituency' },
-  { id: '172', name: 'NAKUYA AIDAH', constituency: 'Kampala Central Division', party: 'DF', category: 'Constituency' },
-  { id: '173', name: 'NATUHWERA PHIONAH DESTINY', constituency: 'Kampala Central Division', party: 'Independent', category: 'Constituency' },
-  { id: '174', name: 'TAMALE IDI WASSWA', constituency: 'Kampala Central Division', party: 'Independent', category: 'Constituency' },
-  { id: '175', name: 'WALANGALIRA ABDALLAH', constituency: 'Kampala Central Division', party: 'PFF', category: 'Constituency' },
-  { id: '176', name: 'ENGENAMAITUM EDWARD STANLEY', constituency: 'Kawempe Division North', party: 'Independent', category: 'Constituency' },
-  { id: '177', name: 'LUYIMBAZI NALUKOOLA ELIAS', constituency: 'Kawempe Division North', party: 'NUP', category: 'Constituency' },
-  { id: '178', name: 'MUSIITWA ISMAIL', constituency: 'Kawempe Division North', party: 'FDC', category: 'Constituency' },
-  { id: '179', name: 'NAMBI FARIDAH KIGONGO', constituency: 'Kawempe Division North', party: 'NRM', category: 'Constituency' },
-  { id: '180', name: 'SSERUNKUMA SALIM', constituency: 'Kawempe Division North', party: 'Independent', category: 'Constituency' },
-  { id: '181', name: 'DDAMULIRA FAISAL', constituency: 'Kawempe Division South', party: 'FDC', category: 'Constituency' },
-  { id: '182', name: 'KYAGULANYI TARIQ MUSA', constituency: 'Kawempe Division South', party: 'Independent', category: 'Constituency' },
-  { id: '183', name: 'NANSUBUGA FATIMAH', constituency: 'Kawempe Division South', party: 'DF', category: 'Constituency' },
-  { id: '184', name: 'NSUBUGA MUHAMMAD', constituency: 'Kawempe Division South', party: 'Independent', category: 'Constituency' },
-  { id: '185', name: 'NSUBUGA UMAR', constituency: 'Kawempe Division South', party: 'EPU', category: 'Constituency' },
-  { id: '186', name: 'NTALE NSEREKO MADINA', constituency: 'Kawempe Division South', party: 'NRM', category: 'Constituency' },
-  { id: '187', name: 'NYANZI FRED SSENTAMU', constituency: 'Kawempe Division South', party: 'NUP', category: 'Constituency' },
-  { id: '188', name: 'SENYONGA MUHAMAD ISMAIL', constituency: 'Kawempe Division South', party: 'Independent', category: 'Constituency' },
-  { id: '189', name: 'SSEMBOGGA ROY', constituency: 'Kawempe Division South', party: 'Independent', category: 'Constituency' },
-  { id: '190', name: 'SSENJAKO DAFALA', constituency: 'Kawempe Division South', party: 'CMP', category: 'Constituency' },
-  { id: '191', name: 'SSENKUNGU HASSAN', constituency: 'Kawempe Division South', party: 'PFF', category: 'Constituency' },
-  { id: '192', name: 'TENYWA EDRISA', constituency: 'Kawempe Division South', party: 'Independent', category: 'Constituency' },
-  // ... more candidates are in the full array, reduced here for brevity ...
-  
-  // WOMAN MPs - Sample from various districts
-  { id: '200', name: 'ACHOLA SUSAN ENGOLA', constituency: 'Woman MP Apac', party: 'UPC', category: 'Woman MP' },
-  { id: '201', name: 'AWOR BETTY ENGOLA', constituency: 'Woman MP Apac', party: 'NRM', category: 'Woman MP' },
-  { id: '202', name: 'AMANYA ANNE', constituency: 'Woman MP Bundibugyo', party: 'Independent', category: 'Woman MP' },
-  { id: '203', name: 'BEBONA JOSEPHINE BABUNGI', constituency: 'Woman MP Bundibugyo', party: 'NRM', category: 'Woman MP' },
-  { id: '204', name: 'KABASINGUZI JENNIFER', constituency: 'Woman MP Bundibugyo', party: 'NUP', category: 'Woman MP' },
-  { id: '205', name: 'KAPALAYA DONNA KAMULI', constituency: 'Woman MP Bundibugyo', party: 'Independent', category: 'Woman MP' },
-  { id: '206', name: 'MASIKA HARRIET', constituency: 'Woman MP Bundibugyo', party: 'Independent', category: 'Woman MP' },
-  { id: '207', name: 'KATUSIIME ANNET MUGISHA', constituency: 'Woman MP Bushenyi', party: 'NRM', category: 'Woman MP' },
-  { id: '208', name: 'KEMIGISHA VIANAH', constituency: 'Woman MP Bushenyi', party: 'Independent', category: 'Woman MP' },
-  { id: '209', name: 'MUSIIMENTA GWENDOLINN', constituency: 'Woman MP Bushenyi', party: 'Independent', category: 'Woman MP' },
-  { id: '210', name: 'NAMARA CAROLINE', constituency: 'Woman MP Bushenyi', party: 'Independent', category: 'Woman MP' },
-  { id: '211', name: 'ANYADWE FILDER ONEK', constituency: 'Woman MP Gulu', party: 'Independent', category: 'Woman MP' },
-  { id: '212', name: 'ATIM MOUREEN JONES', constituency: 'Woman MP Gulu', party: 'UPC', category: 'Woman MP' },
-  { id: '213', name: 'ATIMANGO NANCY', constituency: 'Woman MP Gulu', party: 'Independent', category: 'Woman MP' },
-  { id: '214', name: 'AYOO JANETH PHOEBE OBOL', constituency: 'Woman MP Gulu', party: 'NRM', category: 'Woman MP' },
-  { id: '215', name: 'LAKER SHARON BALMOYI', constituency: 'Woman MP Gulu', party: 'Independent', category: 'Woman MP' },
-  { id: '216', name: 'LALAM IRENE', constituency: 'Woman MP Gulu', party: 'NUP', category: 'Woman MP' },
-  { id: '217', name: 'ASIIMWE SUSAN', constituency: 'Woman MP Hoima', party: 'Independent', category: 'Woman MP' },
-  { id: '218', name: 'BUSINGE HARRIET', constituency: 'Woman MP Hoima', party: 'Independent', category: 'Woman MP' },
-  { id: '219', name: 'MULINDWA VENAH', constituency: 'Woman MP Hoima', party: 'NUP', category: 'Woman MP' },
-  { id: '220', name: 'WEMBABAZI BEATRICE', constituency: 'Woman MP Hoima', party: 'NRM', category: 'Woman MP' },
-  { id: '221', name: 'KAGOYA MARIAM', constituency: 'Woman MP Iganga', party: 'Independent', category: 'Woman MP' },
-  { id: '222', name: 'KAKEREWE AZIZA', constituency: 'Woman MP Iganga', party: 'NUP', category: 'Woman MP' },
-  { id: '223', name: 'KAUMA SAUDA', constituency: 'Woman MP Iganga', party: 'Independent', category: 'Woman MP' },
-  { id: '224', name: 'MARIAM SEIF', constituency: 'Woman MP Iganga', party: 'NRM', category: 'Woman MP' },
-  { id: '225', name: 'NAMBI RITTA', constituency: 'Woman MP Iganga', party: 'COSEVO', category: 'Woman MP' },
-  { id: '226', name: 'NASSANGA JACKLINE OBA', constituency: 'Woman MP Iganga', party: 'Independent', category: 'Woman MP' },
-  { id: '227', name: 'BYUMA BETTY TUUSE', constituency: 'Woman MP Jinja', party: 'FDC', category: 'Woman MP' },
-  { id: '228', name: 'KATALI LOY', constituency: 'Woman MP Jinja', party: 'Independent', category: 'Woman MP' },
-  { id: '229', name: 'MUJOMA REHEMAH NAMUJEHE VAN VREDENDAAL', constituency: 'Woman MP Jinja', party: 'Independent', category: 'Woman MP' },
-  { id: '230', name: 'NAMBI MIRIA', constituency: 'Woman MP Jinja', party: 'NUP', category: 'Woman MP' },
-  { id: '231', name: 'NAMUKOSE MONIC', constituency: 'Woman MP Jinja', party: 'Independent', category: 'Woman MP' },
-  { id: '232', name: 'NAMULINDA SHARITA', constituency: 'Woman MP Jinja', party: 'Independent', category: 'Woman MP' },
-  { id: '233', name: 'SANYU OLIVER PRISCILLA', constituency: 'Woman MP Jinja', party: 'Independent', category: 'Woman MP' },
-  { id: '234', name: 'TIBYAZE PEACE', constituency: 'Woman MP Jinja', party: 'NRM', category: 'Woman MP' },
-  { id: '235', name: 'ANKUNDA GRACE BWESIGYE', constituency: 'Woman MP Kabale', party: 'Independent', category: 'Woman MP' },
-  { id: '236', name: 'ASIIMWE ROSETTEE', constituency: 'Woman MP Kabale', party: 'Independent', category: 'Woman MP' },
-  { id: '237', name: 'ATWAKIIRE CATHELINE NDAMIRA', constituency: 'Woman MP Kabale', party: 'Independent', category: 'Woman MP' },
-  { id: '238', name: 'KYOMUGISHA TRUST', constituency: 'Woman MP Kabale', party: 'Independent', category: 'Woman MP' },
-  { id: '239', name: 'NINSIIMA IMMACULATE TRACY', constituency: 'Woman MP Kabale', party: 'Independent', category: 'Woman MP' },
-  { id: '240', name: 'NYEMERA IMMACULATE KAGWA', constituency: 'Woman MP Kabale', party: 'Independent', category: 'Woman MP' },
-  { id: '241', name: 'ORIGUMISIRIZA ENID ATUHEIRE', constituency: 'Woman MP Kabale', party: 'NRM', category: 'Woman MP' },
-  { id: '242', name: 'KIRUNGI ANNET PAMELA', constituency: 'Woman MP Kabarole', party: 'NRM', category: 'Woman MP' },
-  { id: '243', name: 'NABAYIGA IDAH', constituency: 'Woman MP Kalangala', party: 'NRM', category: 'Woman MP' },
-  { id: '244', name: 'NAKIMULI HELEN', constituency: 'Woman MP Kalangala', party: 'NUP', category: 'Woman MP' },
-  { id: '245', name: 'KASIRI EVELYN KENT', constituency: 'Woman MP Kampala', party: 'NEED', category: 'Woman MP' },
-  { id: '246', name: 'MALENDE SHAMIM', constituency: 'Woman MP Kampala', party: 'NUP', category: 'Woman MP' },
-  { id: '247', name: 'NAKITENDE SALAAMA ADELAIDE', constituency: 'Woman MP Kampala', party: 'DF', category: 'Woman MP' },
-  { id: '248', name: 'NANA NAMATA ANNETTE MWAFRIKA MBARIKIWA', constituency: 'Woman MP Kampala', party: 'PFF', category: 'Woman MP' },
-  { id: '249', name: 'NANFUMA SHAMIM', constituency: 'Woman MP Kampala', party: 'Independent', category: 'Woman MP' },
-  { id: '250', name: 'NANTEGE CHRISTINE ZAABU', constituency: 'Woman MP Kampala', party: 'UPC', category: 'Woman MP' },
-  { id: '251', name: 'NANZIRI AMINAH LUKANGA', constituency: 'Woman MP Kampala', party: 'NRM', category: 'Woman MP' },
-  
-  // More candidates from the list...
-  { id: '252', name: 'BABIRYE BRIDGET', constituency: 'Woman MP Kamuli', party: 'NUP', category: 'Woman MP' },
-  { id: '253', name: 'KADAGA REBECCA ALITWALA', constituency: 'Woman MP Kamuli', party: 'NRM', category: 'Woman MP' },
-  { id: '254', name: 'KIIZA NUUBU SHANITA', constituency: 'Woman MP Kamuli', party: 'Independent', category: 'Woman MP' },
-  { id: '255', name: 'NAIKOBA PROSSY', constituency: 'Woman MP Kamuli', party: 'Independent', category: 'Woman MP' },
-  { id: '256', name: 'NAKISIGE RITAH', constituency: 'Woman MP Kamuli', party: 'Independent', category: 'Woman MP' },
-  { id: '257', name: 'NANGOBI NOET', constituency: 'Woman MP Kamuli', party: 'Independent', category: 'Woman MP' },
-  
-  // Sample from Wakiso
-  { id: '300', name: 'KIRABIRA ROSE KOBUSINGE NALONGO', constituency: 'Woman MP Wakiso', party: 'Independent', category: 'Woman MP' },
-  { id: '301', name: 'MPAMULUNGI IRENE', constituency: 'Woman MP Wakiso', party: 'Independent', category: 'Woman MP' },
-  { id: '302', name: 'NABATANZI JOAN', constituency: 'Woman MP Wakiso', party: 'PFF', category: 'Woman MP' },
-  { id: '303', name: 'NAJJEMBA JOREEN', constituency: 'Woman MP Wakiso', party: 'FDC', category: 'Woman MP' },
-  { id: '304', name: 'NAKUNDA BETH KAYESU', constituency: 'Woman MP Wakiso', party: 'NRM', category: 'Woman MP' },
-  { id: '305', name: 'NAKYANJA ANNET MAWEJJE', constituency: 'Woman MP Wakiso', party: 'DF', category: 'Woman MP' },
-  { id: '306', name: 'NALUYIMA BETTY ETHEL', constituency: 'Woman MP Wakiso', party: 'NUP', category: 'Woman MP' },
-  { id: '307', name: 'NANTALE MARIAM BAGALAALIWO', constituency: 'Woman MP Wakiso', party: 'CMP', category: 'Woman MP' },
-];
+// COMPRESSED DATA STRING - Full 2500+ candidates
+// Format: District|Constituency|Name|Party
+const COMPRESSED_CANDIDATES_DATA = `
+APAC|MARUZI COUNTY|OBONG PETER ACUDA|UPC
+APAC|MARUZI COUNTY|OPETO MOSES|NRM
+APAC|APAC MUNICIPALITY|AKORA MAXWELL EBONG PATRICK|UPC
+APAC|APAC MUNICIPALITY|NEKYON ISAAC EMMA ODONGO|NRM
+APAC|APAC MUNICIPALITY|OCAN PATRICK|BOREHOLE
+APAC|MARUZI NORTH COUNTY|OKELLO NELSON|UPC
+APAC|MARUZI NORTH COUNTY|OTIM BERNARD|NRM
+ARUA|VURRA COUNTY|ADRADU EMMANUEL|CLOCK
+ARUA|VURRA COUNTY|ADRIKO YOVAN|BALL
+ARUA|VURRA COUNTY|ANGUYO JOHN|FDC
+ARUA|VURRA COUNTY|ARIDRU GABRIEL AJEDRA|CANDLE
+ARUA|VURRA COUNTY|LENIA CHARITY KEVIN|NRM
+ARUA|VURRA COUNTY|MADIRA KEFA|BOREHOLE
+BUNDIBUGYO|BWAMBA COUNTY|BAGUMA IDDI|HOUSE
+BUNDIBUGYO|BWAMBA COUNTY|NSEKANABO GODSON|TABLE
+BUNDIBUGYO|BWAMBA COUNTY|NTABAZI HARRIET|NRM
+BUNDIBUGYO|BUGHENDERA COUNTY|BOGERE NICOLUS|FDC
+BUNDIBUGYO|BUGHENDERA COUNTY|BWAMBALE GEOFREY|NUP
+BUNDIBUGYO|BUGHENDERA COUNTY|BYAMUKAMA COSTA|CUP
+BUNDIBUGYO|BUGHENDERA COUNTY|KIIZA ACROBERT MOSES|NRM
+BUNDIBUGYO|BUGHENDERA COUNTY|MBALIBULHA CHRISTOPHER KIBANZANGA TABAN|CLOCK
+BUNDIBUGYO|BUGHENDERA COUNTY|THEMBO SAMUEL MAKENZI|HOUSE
+BUSHENYI|IGARA COUNTY EAST|AINOMUGISHA DORCUS|DP
+BUSHENYI|IGARA COUNTY EAST|MATSIKO DAN|FDC
+BUSHENYI|IGARA COUNTY EAST|MAWANDA MICHAEL MARANGA|NRM
+BUSHENYI|IGARA COUNTY EAST|MUGIZI YASONI|BALL
+BUSHENYI|IGARA COUNTY EAST|NIMWESIGA HERBERT|CLOCK
+BUSHENYI|IGARA COUNTY EAST|RUKUNDO BENON|CHAIR
+BUSHENYI|IGARA COUNTY EAST|TANGARO ARTHUR|COFFEE
+BUSHENYI|IGARA COUNTY EAST|TUMWINE EBON|TABLE
+BUSHENYI|IGARA COUNTY EAST|TUSHABE ALLEN|MEGAPHONE
+BUSHENYI|IGARA COUNTY WEST|AMANYA COHEN KYAMPENE|NRM
+BUSHENYI|IGARA COUNTY WEST|MACHO MUBARAK|SAUCEPAN
+BUSHENYI|IGARA COUNTY WEST|MUHABUZI HORACE|BOOK
+BUSHENYI|IGARA COUNTY WEST|MUSINGUZI ARNOLD MUGISHA|CHAIR
+BUSHENYI|IGARA COUNTY WEST|NIMWESIGA DAN|CLOCK
+BUSHENYI|IGARA COUNTY WEST|TUGUME BONIFACE|TABLE
+BUSHENYI|IGARA COUNTY WEST|TUMURAMYE ROBERT BAHIGA|HOUSE
+BUSHENYI|IGARA COUNTY WEST|TUMUTEGYERIZE ONESMAS|CAR
+BUSHENYI|BUSHENYI -ISHAKA MUNICIPALITY|AHABWE ELLY RUKIRA|UPC
+BUSHENYI|BUSHENYI -ISHAKA MUNICIPALITY|BASSAJJA IDDI|NRM
+BUSHENYI|BUSHENYI -ISHAKA MUNICIPALITY|BEINOMUGISHA GODFREY|NUP
+BUSHENYI|BUSHENYI -ISHAKA MUNICIPALITY|NAMANYA EDWIN|FDC
+BUSHENYI|BUSHENYI -ISHAKA MUNICIPALITY|NDYAKIRA NICHOLAS MUHEREZA|BALL
+BUSHENYI|BUSHENYI -ISHAKA MUNICIPALITY|TUKUNDANE CASBART|POT
+BUSHENYI|BUSHENYI -ISHAKA MUNICIPALITY|TWAHIKA DENIS|CLOCK
+BUSHENYI|BUSHENYI -ISHAKA MUNICIPALITY|TWINOMUGISHA EDWIN|CANDLE
+GULU|ASWA COUNTY|OKELLO PATRICK ONGUTI|DP
+GULU|ASWA COUNTY|OKOT WALTER|NUP
+GULU|ASWA COUNTY|OLWA JOHNSON AGARA|HOUSE
+GULU|ASWA COUNTY|ORINGA JAMES|FDC
+GULU|ASWA COUNTY|WOKORACH SIMON PETER|NRM
+HOIMA|BUGAHYA COUNTY|KATO HABERT|ANT
+HOIMA|BUGAHYA COUNTY|TUGUME ALLAN CLEFFORD|NUP
+HOIMA|BUGAHYA COUNTY|WAKABI PIUS|NRM
+HOIMA|KIGOROBYA COUNTY|KARUBANGA DAVID|CHAIR
+HOIMA|KIGOROBYA COUNTY|KASIGWA GERALD BIHEMAISO|NRM
+HOIMA|KIGOROBYA COUNTY|MUGISA CHRISPUS|NUP
+IGANGA|KIGULU COUNTY NORTH|BADOGI ISMAIL WAGUMA|CLOCK
+IGANGA|KIGULU COUNTY NORTH|GUBI KENNETH|TABLE
+IGANGA|KIGULU COUNTY NORTH|KISIRA PETER|DF
+IGANGA|KIGULU COUNTY NORTH|KUNGU SAMUEL BAMUTEEZE|NRM
+IGANGA|KIGULU COUNTY NORTH|KUSASIRA SAMUEL|ANT
+IGANGA|KIGULU COUNTY NORTH|MUKAKANYA DEREK|FDC
+IGANGA|KIGULU COUNTY NORTH|MWESIGWA SAMUEL|CHAIR
+IGANGA|KIGULU COUNTY NORTH|NTAMBI MUHAMMAD RAMADHAN|NUP
+IGANGA|KIGULU COUNTY SOUTH|KAGYERERO RONALD|FDC
+IGANGA|KIGULU COUNTY SOUTH|KAYEMBA PATRICK|NRM
+IGANGA|KIGULU COUNTY SOUTH|KIIZA ANDREW NAMITEGO KALUYA|NUP
+IGANGA|KIGULU COUNTY SOUTH|MUKISA RICHARD STANLEY NALUWAYIRO|DF
+IGANGA|KIGULU COUNTY SOUTH|MUWUMA MILTON REINHARD KALULU|BALL
+IGANGA|KIGULU COUNTY SOUTH|NTULUME YUSUF KYAFU|TABLE
+IGANGA|KIGULU COUNTY SOUTH|SEBUKAIRE ABDULRAHMAAN ANDREW|BOREHOLE
+IGANGA|KIGULU COUNTY SOUTH|WAISWA IAN|CLOCK
+IGANGA|IGANGA MUNICIPALITY|BAMUGEMYE DELLIX RICHARD|CLOCK
+IGANGA|IGANGA MUNICIPALITY|BIKONDO ABDALLAH|JEEMA
+IGANGA|IGANGA MUNICIPALITY|BIRUNGI JOSEPHINE|BOOK
+IGANGA|IGANGA MUNICIPALITY|BUWASO MOSES|CHAIR
+IGANGA|IGANGA MUNICIPALITY|MUDIOBOLE ABEDI NASSER|NUP
+IGANGA|IGANGA MUNICIPALITY|MUGEMA PETER|SAUCEPAN
+IGANGA|IGANGA MUNICIPALITY|MUKALU MOHAMED|CANDLE
+IGANGA|IGANGA MUNICIPALITY|MUKOSE HUZAIMA|DP
+IGANGA|IGANGA MUNICIPALITY|MULONDO JOHN|TABLE
+IGANGA|IGANGA MUNICIPALITY|NAMUDIBA KUTESA VIVIAN|BANANA
+IGANGA|IGANGA MUNICIPALITY|NKOYOYO TREVOR|DF
+IGANGA|IGANGA MUNICIPALITY|OJASI SWAIBU|NRM
+JINJA|BUTEMBE COUNTY|BASAKANA HANNINGTON|ANT
+JINJA|BUTEMBE COUNTY|KABONDO JACOB|NRM
+JINJA|BUTEMBE COUNTY|KABULE SANDE CHARLES|BALL
+JINJA|BUTEMBE COUNTY|KAPYATE ABEL|CHAIR
+JINJA|BUTEMBE COUNTY|KIIRYA GRACE PADDY WANZALA|FDC
+JINJA|BUTEMBE COUNTY|MANDWA IBRAHIM|TABLE
+JINJA|BUTEMBE COUNTY|MUWANIKA KENNETH MUKULU|CANDLE
+JINJA|BUTEMBE COUNTY|NNATABI MARIA LEDOCHOWSKA|NUP
+JINJA|BUTEMBE COUNTY|OKUMU SHABAN|CLOCK
+JINJA|KAGOMA COUNTY|ANYOLE INNOCENT|NUP
+JINJA|KAGOMA COUNTY|AZIRA KENETH|TABLE
+JINJA|KAGOMA COUNTY|MAGAYA TIMOTHY|CLOCK
+JINJA|KAGOMA COUNTY|MUNYIRWA FREDERICK|NRM
+JINJA|KAGOMA COUNTY|NABUGO SHAFIC|DP
+JINJA|KAGOMA COUNTY|SALAMUKA FRED LUBAALE|BOOK
+JINJA|KAGOMA COUNTY|WALYOMU MOSES MUWANIKA|CHAIR
+JINJA|KAGOMA NORTH COUNTY|AKALYAAMAWA SAMUEL|BALL
+JINJA|KAGOMA NORTH COUNTY|BALIDAWA DANIEL|RADIO
+JINJA|KAGOMA NORTH COUNTY|BATESAAKI MENYA PETER AGGREY|FDC
+JINJA|KAGOMA NORTH COUNTY|BUDHUGO ISA|CLOCK
+JINJA|KAGOMA NORTH COUNTY|DHIKUSOOKA GYAVIIRA|SAUCEPAN
+JINJA|KAGOMA NORTH COUNTY|KINTU ALEX BRANDON|NRM
+JINJA|KAGOMA NORTH COUNTY|ODWORI JOHN|NUP
+JINJA|KAGOMA NORTH COUNTY|WANDERA PAUL|CANDLE
+KABALE|NDORWA COUNTY EAST|AKAMPUMUZA JAMES RUTANGA|HOUSE
+KABALE|NDORWA COUNTY EAST|BEGUMISA PROTAZIO|NRM
+KABALE|NDORWA COUNTY EAST|KYOKWIJUKA ALEXANDER|BALL
+KABALE|NDORWA COUNTY EAST|NIWAGABA WILFRED|CLOCK
+KABALE|NDORWA COUNTY EAST|SUNDAY ELIAS|NUP
+KABALE|NDORWA COUNTY WEST|ABOMUGISHA BOAZ RUGIREHE|CHAIR
+KABALE|NDORWA COUNTY WEST|BAHATI DAVID|HOUSE
+KABALE|NDORWA COUNTY WEST|MATSIKO GILBERT|BALL
+KABALE|NDORWA COUNTY WEST|NATURINDA ELIAB|NRM
+KABALE|KABALE MUNICIPALITY|AINE JESSY|FDC
+KABALE|KABALE MUNICIPALITY|ARINAITWE BRIAN DENIS|BALL
+KABALE|KABALE MUNICIPALITY|BAKASHABA WILLIAM|CANDLE
+KABALE|KABALE MUNICIPALITY|BARYAYANGA ANDREW AJA|NRM
+KABALE|KABALE MUNICIPALITY|KAMARA NICHOLAS THADEUS|PFF
+KABALE|KABALE MUNICIPALITY|MUHWEZI ALEX EDGAR|RADIO
+KABALE|KABALE MUNICIPALITY|NABAASA DAN MUSINGUZI|CLOCK
+KABAROLE|BURAHYA COUNTY|MUGENYI JOSEPH|NRM
+KABAROLE|BURAHYA COUNTY|MUHUMUZA RONALD|NUP
+KABAROLE|BURAHYA COUNTY|RWABUHINGA RICHARD|CLOCK
+KABAROLE|BURAHYA COUNTY|TUMUSIIME DENIS|ANT
+KALANGALA|BUJUMBA COUNTY|LUGOLOOBI WILLY BAGEYENTE|NRM
+KALANGALA|BUJUMBA COUNTY|MUKASA JULIUS OPONDO|BALL
+KALANGALA|BUJUMBA COUNTY|NDUGWA VICENT|CLOCK
+KALANGALA|BUJUMBA COUNTY|SSEMAKULA RAJAB|NUP
+KALANGALA|KYAMUSWA COUNTY|BIRUNGI CAROLYN NANYONDO|NRM
+KALANGALA|KYAMUSWA COUNTY|KABUUSU MOSES|PFF
+KALANGALA|KYAMUSWA COUNTY|KISEKKA ALOY VINCENT|TABLE
+KALANGALA|KYAMUSWA COUNTY|NKAMBO SSENUNGI DAUDI LUMBUYE|NUP
+KAMPALA|KAMPALA CENTRAL DIVISION|AGABA MUZOORA|ANT
+KAMPALA|KAMPALA CENTRAL DIVISION|DAVID LEWIS RUBONGOYA|NUP
+KAMPALA|KAMPALA CENTRAL DIVISION|KABANDA MINSA NABBENGO|NRM
+KAMPALA|KAMPALA CENTRAL DIVISION|KARUHANGA RINA|BALL
+KAMPALA|KAMPALA CENTRAL DIVISION|KASOZI ABDUL WAHAB|JEEMA
+KAMPALA|KAMPALA CENTRAL DIVISION|KIWUWA RONALD|RADIO
+KAMPALA|KAMPALA CENTRAL DIVISION|KUSHABA SUSAN|MEGAPHONE
+KAMPALA|KAMPALA CENTRAL DIVISION|LUZZI ABRAHAM|TELEVISION
+KAMPALA|KAMPALA CENTRAL DIVISION|LWANGA ALLAN|CHAIR
+KAMPALA|KAMPALA CENTRAL DIVISION|MINAWA FAROUK|FDC
+KAMPALA|KAMPALA CENTRAL DIVISION|MUHANGI MOSES KAPERE|CLOCK
+KAMPALA|KAMPALA CENTRAL DIVISION|MUTESA MUHSIN|EPU
+KAMPALA|KAMPALA CENTRAL DIVISION|NAKUYA AIDAH|DF
+KAMPALA|KAMPALA CENTRAL DIVISION|NATUHWERA PHIONAH DESTINY|CANDLE
+KAMPALA|KAMPALA CENTRAL DIVISION|TAMALE IDI WASSWA|BANANA
+KAMPALA|KAMPALA CENTRAL DIVISION|WALANGALIRA ABDALLAH|PFF
+KAMPALA|KAWEMPE DIVISION NORTH|ENGENAMAITUM EDWARD STANLEY|BALL
+KAMPALA|KAWEMPE DIVISION NORTH|LUYIMBAZI NALUKOOLA ELIAS|NUP
+KAMPALA|KAWEMPE DIVISION NORTH|MUSIITWA ISMAIL|FDC
+KAMPALA|KAWEMPE DIVISION NORTH|NAMBI FARIDAH KIGONGO|NRM
+KAMPALA|KAWEMPE DIVISION NORTH|SSERUNKUMA SALIM|CLOCK
+KAMPALA|KAWEMPE DIVISION SOUTH|DDAMULIRA FAISAL|FDC
+KAMPALA|KAWEMPE DIVISION SOUTH|KYAGULANYI TARIQ MUSA|TABLE
+KAMPALA|KAWEMPE DIVISION SOUTH|NANSUBUGA FATIMAH|DF
+KAMPALA|KAWEMPE DIVISION SOUTH|NSUBUGA MUHAMMAD|CLOCK
+KAMPALA|KAWEMPE DIVISION SOUTH|NSUBUGA UMAR|EPU
+KAMPALA|KAWEMPE DIVISION SOUTH|NTALE NSEREKO MADINA|NRM
+KAMPALA|KAWEMPE DIVISION SOUTH|NYANZI FRED SSENTAMU|NUP
+KAMPALA|KAWEMPE DIVISION SOUTH|SENYONGA MUHAMAD ISMAIL|POT
+KAMPALA|KAWEMPE DIVISION SOUTH|SSEMBOGGA ROY|MEGAPHONE
+KAMPALA|KAWEMPE DIVISION SOUTH|SSENJAKO DAFALA|CMP
+KAMPALA|KAWEMPE DIVISION SOUTH|SSENKUNGU HASSAN|PFF
+KAMPALA|KAWEMPE DIVISION SOUTH|TENYWA EDRISA|BALL
+KAMPALA|MAKINDYE DIVISION EAST|KANABAHITA NICHOLAS ELIJAH|JERRYCAN
+KAMPALA|MAKINDYE DIVISION EAST|KASIRYE NGANDA ALI|NUP
+KAMPALA|MAKINDYE DIVISION EAST|KAYONDO JAMES WAMPAMBA|BANANA
+KAMPALA|MAKINDYE DIVISION EAST|KAYONDO MULOWOOZA DAVID LIVINGSTONE|CANDLE
+KAMPALA|MAKINDYE DIVISION EAST|KISARITA BAKER|BOOK
+KAMPALA|MAKINDYE DIVISION EAST|LUBEGA FRANCIS|FDC
+KAMPALA|MAKINDYE DIVISION EAST|MABIKKE MICHAEL SSENINDE|DF
+KAMPALA|MAKINDYE DIVISION EAST|MUHAWENIMANA EDSON|PFF
+KAMPALA|MAKINDYE DIVISION EAST|MULEME FRANCIS|TABLE
+KAMPALA|MAKINDYE DIVISION EAST|NAMONO RACHEAL|CUP
+KAMPALA|MAKINDYE DIVISION EAST|NDIKUWEERA ASAPH|MEGAPHONE
+KAMPALA|MAKINDYE DIVISION EAST|NUWABEINE JUDITH|NRM
+KAMPALA|MAKINDYE DIVISION EAST|OWOBUSINGYE ELIJAH KAILUKABI|CAR
+KAMPALA|MAKINDYE DIVISION EAST|SEKAJUGO PAUL NICHOLAS|KETTLE
+KAMPALA|MAKINDYE DIVISION EAST|SSEGAWA SUNDAY NEWTON|HOUSE
+KAMPALA|MAKINDYE DIVISION EAST|SSEKATE JOHN MARY|CHAIR
+KAMPALA|MAKINDYE DIVISION EAST|SSEKIDDE ROBERT WILLIAM|CLOCK
+KAMPALA|MAKINDYE DIVISION EAST|SSEMPIJJA STANLEY|TELEVISION
+KAMPALA|MAKINDYE DIVISION EAST|SSENTAMU SAMUEL KABANDA|POT
+KAMPALA|MAKINDYE DIVISION EAST|TENYWA CONSTANTINE PADDA|BALL
+KAMPALA|MAKINDYE DIVISION EAST|WALUSIMBI FREDRICH|RADIO
+KAMPALA|MAKINDYE DIVISION EAST|ZIZINGA MICHEAL|BOAT
+KAMPALA|MAKINDYE DIVISION WEST|ASIMWE VIVIAN|NEED
+KAMPALA|MAKINDYE DIVISION WEST|KANYANGOGA MOSES RUKUNDO|FDC
+KAMPALA|MAKINDYE DIVISION WEST|KEITA DOREEN KAGABI|NRM
+KAMPALA|MAKINDYE DIVISION WEST|KIYEGA ROGERS EDWARD|RADIO
+KAMPALA|MAKINDYE DIVISION WEST|KIZITO EXPERITO|TABLE
+KAMPALA|MAKINDYE DIVISION WEST|MAALA ZAHRAH LUYIRIKA|NUP
+KAMPALA|MAKINDYE DIVISION WEST|MUSIRI DAVID|DF
+KAMPALA|MAKINDYE DIVISION WEST|NAMUYABA SAFINA SSEBAGGALLA|ANT
+KAMPALA|MAKINDYE DIVISION WEST|NTEGE FAROUQ|CLOCK
+KAMPALA|MAKINDYE DIVISION WEST|SSEBULIBA JACKSON BAGANDANSWA|HOUSE
+KAMPALA|MAKINDYE DIVISION WEST|SSENYONGA MICHAEL|CAR
+KAMPALA|MAKINDYE DIVISION WEST|SSEWANYANA ALLAN ALOIZIOUS|BALL
+KAMPALA|MAKINDYE DIVISION WEST|TUGUME APUULI RONALD|MEGAPHONE
+KAMPALA|RUBAGA DIVISION NORTH|KATO VINCENT|JEEMA
+KAMPALA|RUBAGA DIVISION NORTH|KATONGOLE DERRICK|FDC
+KAMPALA|RUBAGA DIVISION NORTH|KAWALYA ABUBAKER|NUP
+KAMPALA|RUBAGA DIVISION NORTH|KITONSA DIANA|CHAIR
+KAMPALA|RUBAGA DIVISION NORTH|LUTALE MARIAM|PFF
+KAMPALA|RUBAGA DIVISION NORTH|MARWAHA PARMINDER SINGH KATONOLE|NRM
+KAMPALA|RUBAGA DIVISION NORTH|MUJJUKWA DAVID|CANDLE
+KAMPALA|RUBAGA DIVISION NORTH|MUKIIBI ROBERT|DF
+KAMPALA|RUBAGA DIVISION NORTH|RWAHWIRE MARGARET|EPU
+KAMPALA|RUBAGA DIVISION NORTH|SSEBUUFU PETER|CLOCK
+KAMPALA|RUBAGA DIVISION SOUTH|BUKENYA ALEX|FDC
+KAMPALA|RUBAGA DIVISION SOUTH|KEN-LUKYAMUZI JOHN|CP
+KAMPALA|RUBAGA DIVISION SOUTH|LUBEGA SAMUEL WALTER M|DF
+KAMPALA|RUBAGA DIVISION SOUTH|MBAZIIRA MUSA|NRM
+KAMPALA|RUBAGA DIVISION SOUTH|MUGGA ADAM SWIFT|CLOCK
+KAMPALA|RUBAGA DIVISION SOUTH|MUKASA ALOYSIUS TALTON GOLD|BALL
+KAMPALA|RUBAGA DIVISION SOUTH|MUSINGUZI RONARD|BOOK
+KAMPALA|RUBAGA DIVISION SOUTH|NALUBEGA DORAH|DP
+KAMPALA|RUBAGA DIVISION SOUTH|NASSOLO EUGENIA|NUP
+KAMPALA|NAKAWA DIVISION EAST|ACER GODFREY OKOT|BALL
+KAMPALA|NAKAWA DIVISION EAST|KABAZIGURUKA MICHAEL ANDREW|PFF
+KAMPALA|NAKAWA DIVISION EAST|KATENDE MUHAMMAD|JEEMA
+KAMPALA|NAKAWA DIVISION EAST|KEENO CHARLES RONNY|RADIO
+KAMPALA|NAKAWA DIVISION EAST|KIRABO JOY GASANGWA|CLOCK
+KAMPALA|NAKAWA DIVISION EAST|MUGAGGA AUGUSTINE|BANANA
+KAMPALA|NAKAWA DIVISION EAST|MUGISHA MOSES OKWERA|FDC
+KAMPALA|NAKAWA DIVISION EAST|MUWONGE VIANE|TABLE
+KAMPALA|NAKAWA DIVISION EAST|NAKANDI WINIFRED|DF
+KAMPALA|NAKAWA DIVISION EAST|RUHINDI FREDRICK|NRM
+KAMPALA|NAKAWA DIVISION EAST|SEGIRINYA DAVID KINTU|BOOK
+KAMPALA|NAKAWA DIVISION EAST|WAISWA ALEX MUFUMBIRO|NUP
+KAMPALA|NAKAWA DIVISION WEST|BURORA HERBERT ANDERSON|NRM
+KAMPALA|NAKAWA DIVISION WEST|BWOWE IVAN|PFF
+KAMPALA|NAKAWA DIVISION WEST|KYAMBADDE WILBERFORCE|FDC
+KAMPALA|NAKAWA DIVISION WEST|NASASIRA HAPPY|DF
+KAMPALA|NAKAWA DIVISION WEST|OKUMU VINCENT NORBERT|UPC
+KAMPALA|NAKAWA DIVISION WEST|OKUYE FELIX|CLOCK
+KAMPALA|NAKAWA DIVISION WEST|RWAMITI APUULI|CMP
+KAMPALA|NAKAWA DIVISION WEST|SSENYONYI JOEL BESEKEZI|NUP
+KAMULI|BUGABULA COUNTY NORTH|ADEPO FRANCIS|FDC
+KAMULI|BUGABULA COUNTY NORTH|AKOBERWA ABUSAAGI|CHAIR
+KAMULI|BUGABULA COUNTY NORTH|KABIIBI EMMANUEL|PFF
+KAMULI|BUGABULA COUNTY NORTH|KITIMBO EDWARD|BOOK
+KAMULI|BUGABULA COUNTY NORTH|LYAVAALA JOY|NUP
+KAMULI|BUGABULA COUNTY NORTH|MULINDWA GEORGE|CLOCK
+KAMULI|BUGABULA COUNTY NORTH|NAMWASE ANNET|BOREHOLE
+KAMULI|BUGABULA COUNTY NORTH|NTENDE JULIUS|RADIO
+KAMULI|BUGABULA COUNTY NORTH|OMONDI FLAVIA|SAUCEPAN
+KAMULI|BUGABULA COUNTY NORTH|TEIRA JOHN|NRM
+KAMULI|BUGABULA COUNTY SOUTH|BAZAANYA MATAYO|NRM
+KAMULI|BUGABULA COUNTY SOUTH|DHIZAALA SANON MOSES|CHAIR
+KAMULI|BUGABULA COUNTY SOUTH|GWAIVU ROBERT|RADIO
+KAMULI|BUGABULA COUNTY SOUTH|KATAGWA PATRICIA|EPU
+KAMULI|BUGABULA COUNTY SOUTH|KIRIMANI KABANDA RONALD|FDC
+KAMULI|BUGABULA COUNTY SOUTH|MUWANGUZI ANDREW|NUP
+KAMULI|BUGABULA COUNTY SOUTH|SALAAMU MUSUMBA PROSCOVIA|PFF
+KAMULI|BUZAAYA COUNTY|ATALIBA IRENE|BALL
+KAMULI|BUZAAYA COUNTY|ISAAC ISANGA MUSUMBA|BOOK
+KAMULI|BUZAAYA COUNTY|KANAGALYAWA GEOFREY|CANDLE
+KAMULI|BUZAAYA COUNTY|KIBIKYO YOWERI KIDAAGA|CHAIR
+KAMULI|BUZAAYA COUNTY|KIRENDA SAMUEL ISABIRYE|KETTLE
+KAMULI|BUZAAYA COUNTY|MPASA EMMANUEL IVAN|CLOCK
+KAMULI|BUZAAYA COUNTY|MUGABI MUZAALE MARTIN KISULE|NRM
+KAMULI|BUZAAYA COUNTY|MUZUUSA STEPHEN|RADIO
+KAMULI|BUZAAYA COUNTY|MWASE DANIEL BALIBONAKI|TABLE
+KAMULI|BUZAAYA COUNTY|OMAALI CHARLES|DF
+KAMULI|BUZAAYA COUNTY|SSEBIDDE AMMEX|BOREHOLE
+KAMULI|BUZAAYA COUNTY|WABWIIRE CRIS CHRISOSTOME|NUP
+KAMULI|BUZAAYA COUNTY|WAGALIMA GEORGE|BOAT
+KAMULI|BUZAAYA COUNTY|WAISWA ANDREW KALAALI|FDC
+KAMULI|BUZAAYA COUNTY|WAKABI JOSEPH ABIAM|DP
+KAMULI|KAMULI MUNICIPALITY|BIGIRWA MOSES|CMP
+KAMULI|KAMULI MUNICIPALITY|KAYANGA BARODA|CHAIR
+KAMULI|KAMULI MUNICIPALITY|LUWANO AZIZI|BALL
+KAMULI|KAMULI MUNICIPALITY|MUBIAZALWA BONNY|FDC
+KAMULI|KAMULI MUNICIPALITY|MUGOYA GODFREY|NUP
+KAMULI|KAMULI MUNICIPALITY|NAMATOVU MASTULA|NRM
+KAMULI|KAMULI MUNICIPALITY|TEZIKUBA FAROUK JOSHUA|CLOCK
+KAPCHORWA|TINGEY COUNTY|CHELANGAT ASHIRAF|FDC
+KAPCHORWA|TINGEY COUNTY|CHESAK ALFRED MANGUSHO|CHAIR
+KAPCHORWA|TINGEY COUNTY|SOYEKWO KENNETH CHEBORION|BALL
+KAPCHORWA|TINGEY COUNTY|TWALLA FADIL|NRM
+KAPCHORWA|KAPCHORWA MUNICIPALITY|CHEKAMONDO RUKIYA KULANY|BANANA
+KAPCHORWA|KAPCHORWA MUNICIPALITY|CHELIMO PETER POLOMAN|CAR
+KAPCHORWA|KAPCHORWA MUNICIPALITY|CHEMONGES MARTIN|NRM
+KAPCHORWA|KAPCHORWA MUNICIPALITY|CHEMUTAI KALIFANI|NUP
+KAPCHORWA|KAPCHORWA MUNICIPALITY|KITIYO PATRICK|CANDLE
+KASESE|BUKONZO COUNTY EAST|BINTUUKA JULIUS WALTER MWEBAZE|CLOCK
+KASESE|BUKONZO COUNTY EAST|BWAMBALE CLEOUS TINKASIMIRE|NUP
+KASESE|BUKONZO COUNTY EAST|KAHUNGU PHILLY AMON|DF
+KASESE|BUKONZO COUNTY EAST|MASEREKA SYLVEST|FDC
+KASESE|BUKONZO COUNTY EAST|MONDAY JULIUS RUDE|NRM
+KASESE|BUKONZO COUNTY EAST|MUHINDO HAROLD TONNY|PFF
+KASESE|BUKONJO COUNTY WEST|KATUSABE GODFREY|FDC
+KASESE|BUKONJO COUNTY WEST|KIYONGA C W C B|NRM
+KASESE|BUKONJO COUNTY WEST|TAHAKABA MUHINDOH SHAHIDU|NUP
+KASESE|BUSONGORA COUNTY NORTH|ASIIMWE MIKE MBAKANIA|CANDLE
+KASESE|BUSONGORA COUNTY NORTH|BWAMBALE JONENI|NUP
+KASESE|BUSONGORA COUNTY NORTH|KITANYWA SOWEDI|NRM
+KASESE|BUSONGORA COUNTY NORTH|MASEREKA ROBERT|RADIO
+KASESE|BUSONGORA COUNTY NORTH|NZOGHU MUSABE WILLIAM|FDC
+KASESE|BUSONGORA COUNTY NORTH|THEMBO EXEVIA|DF
+KASESE|BUSONGORA COUNTY SOUTH|BAKULIRAHI SEDRACK MBAJU ARINAITWE|PFF
+KASESE|BUSONGORA COUNTY SOUTH|BAROZI FRANK ASIIMWE|CANDLE
+KASESE|BUSONGORA COUNTY SOUTH|KIGHEMA ALOZIOUS BAGUMA|FDC
+KASESE|BUSONGORA COUNTY SOUTH|MBAJU JACKSON|NUP
+KASESE|BUSONGORA COUNTY SOUTH|MULINDWA DAVID ISIMBWA|NRM
+KASESE|BUSONGORA COUNTY SOUTH|MUNEZERO JUMA|BALL
+KASESE|BUSONGORA COUNTY SOUTH|THEMBO GIDEON MUJUNGU|RADIO
+KASESE|KASESE MUNICIPALITY|CENTENARY FRANCO ROBERT|FDC
+KASESE|KASESE MUNICIPALITY|KAMBALE FERIGO|NRM
+KASESE|KASESE MUNICIPALITY|KATUSABE JOHN SIBENDIRE|BOOK
+KASESE|KASESE MUNICIPALITY|MAFUNGURO JOSEPH|PFF
+KASESE|KASESE MUNICIPALITY|MUGISA FRANCIS KITHULA|CLOCK
+KASESE|KASESE MUNICIPALITY|MUTHOMA ROBERT|NUP
+KIBAALE|BUYANJA COUNTY|ATEGEKA CHRISTOPHER|NUP
+KIBAALE|BUYANJA COUNTY|KASAIJA ROGERS WYCLIFFE|NUP
+KIBAALE|BUYANJA COUNTY|KASAIJA MATIA|NRM
+KIBAALE|BUYANJA COUNTY|KYALIMPA PAUL|CLOCK
+KIBAALE|BUYANJA COUNTY|MWESIGWA JULIUS KACEBONAHO|COFFEE
+KIBAALE|BUYANJA EAST COUNTY|KUGONZA EMELY|NRM
+KIBOGA|KIBOGA EAST COUNTY|KIWANUKA KEEFA|NRM
+KIBOGA|KIBOGA EAST COUNTY|MUSOKE MICHAEL TREVOSS|NUP
+KIBOGA|KIBOGA WEST COUNTY|AKISHURI FRANK P. GAHAFU|CLOCK
+KIBOGA|KIBOGA WEST COUNTY|BUKULU WILLIAM JOSEPH|BOREHOLE
+KIBOGA|KIBOGA WEST COUNTY|KIBUUKA MUHAMMUD|RADIO
+KIBOGA|KIBOGA WEST COUNTY|LULE ERIA ERICK|NRM
+KIBOGA|KIBOGA WEST COUNTY|MUTUMBA ABDUL|TABLE
+KIBOGA|KIBOGA WEST COUNTY|NAKYANZI GRACE KAKOOZA|NUP
+KIBOGA|KIBOGA WEST COUNTY|SSEBINA DANIEL|MEGAPHONE
+KIBOGA|KIBOGA WEST COUNTY|SSIMBWA BEN|FDC
+KISORO|BUFUMBIRA COUNTY EAST|BIZIMANA ABEL|MEGAPHONE
+KISORO|BUFUMBIRA COUNTY EAST|NKRUMAH ROLAND|NRM
+KISORO|BUFUMBIRA COUNTY EAST|TUMWIZERE CHRISTOPHER GAHUTU|CLOCK
+KISORO|BUFUMBIRA COUNTY NORTH|HABYARA FORTUNATE|NRM
+KISORO|BUFUMBIRA COUNTY NORTH|KAMARA JOHN NIZEYIMANA|BANANA
+KISORO|BUFUMBIRA COUNTY NORTH|NGIRABAKUNZI DANIEL|DP
+KISORO|BUFUMBIRA COUNTY SOUTH|BITANGARO KWIZERA SAM|RADIO
+KISORO|BUFUMBIRA COUNTY SOUTH|MUNYAMBABAZI ADAM|ANT
+KISORO|BUFUMBIRA COUNTY SOUTH|NIYONSABA ALEX|NRM
+KISORO|KISORO MUNICIPALITY|BYIBESHO SAM|NRM
+KISORO|KISORO MUNICIPALITY|HATEGEKA PAUL|CLOCK
+KISORO|KISORO MUNICIPALITY|MFITIMANA LEO|CANDLE
+KISORO|KISORO MUNICIPALITY|NDAYISHIMYE DERICK|NUP
+KISORO|BUKIMBIRI COUNTY|KWIZERA EDDIE WA-GAHUNGU|CLOCK
+KISORO|BUKIMBIRI COUNTY|OWEBEYI JAMES|FDC
+KISORO|BUKIMBIRI COUNTY|TURYAGYENDA ASGARIO|NRM
+KITGUM|CHUA WEST COUNTY|AKENA ALLAN|CLOCK
+KITGUM|CHUA WEST COUNTY|NAGUDI AISA ANN OKOT|RADIO
+KITGUM|CHUA WEST COUNTY|NOKRACH SOLOMON OSCAR|DP
+KITGUM|CHUA WEST COUNTY|OKELLOWANGE OGWENG JOSEPH|UPC
+KITGUM|CHUA WEST COUNTY|OKIN P. P. OJARA|CHAIR
+KITGUM|CHUA WEST COUNTY|ORYEMA SIMON PETER ADUM|NRM
+KITGUM|CHUA EAST COUNTY|OKELLO HENRY ORYEM|NRM
+KITGUM|CHUA EAST COUNTY|OKOYA JOHN CALVIN|CLOCK
+KITGUM|CHUA EAST COUNTY|ONENCAN JOHNATHAN|DF
+KITGUM|KITGUM MUNICIPALITY|ATIM BEATRICE ANYWAR|NRM
+KITGUM|KITGUM MUNICIPALITY|LAMARA GLORIA|PFF
+KITGUM|KITGUM MUNICIPALITY|OKELLO RICHARD RAMBO|BALL
+KITGUM|KITGUM MUNICIPALITY|OLENGE JIMMY KOMAKECH OLANYA|UPC
+KITGUM|KITGUM MUNICIPALITY|ONEKA LIT AMERE DENIS|FDC
+KOTIDO|JIE COUNTY|ACHIA LOKIRU GABRIEL|NRM
+KOTIDO|JIE COUNTY|LOKII PETER ABRAHAMS|CHAIR
+KOTIDO|KOTIDO MUNICIPALITY|ADOME BILDAD MOSES|POT
+KOTIDO|KOTIDO MUNICIPALITY|ISMAIL MUHAMMAD LOMWAR|NRM
+KUMI|KUMI COUNTY|ILUKOR CHARLES|CHAIR
+KUMI|KUMI COUNTY|ISOUT JAMES|FDC
+KUMI|KUMI COUNTY|OGWANG EMMANUEL DAVID|MEGAPHONE
+KUMI|KUMI COUNTY|OKAASAI SIDRONIUS OPOLOT|NRM
+KUMI|KUMI COUNTY|OPIO SOLOMON|CLOCK
+KUMI|KUMI COUNTY|OPOLOT CHARLES|DP
+KUMI|KANYUM COUNTY|ADUPA JOEL|CANDLE
+KUMI|KANYUM COUNTY|AKABWAI JAMES|NUP
+KUMI|KANYUM COUNTY|AMURIAT PATRICK OBOI|FDC
+KUMI|KANYUM COUNTY|KEDI SAUL PATRICK|CLOCK
+KUMI|KANYUM COUNTY|OKANYA JOHN KOKAS|CHAIR
+KUMI|KANYUM COUNTY|OPOLOT-OKWALINGA SIMON PETER|NRM
+KUMI|KANYUM COUNTY|ORENA VINCENT|RADIO
+KUMI|KANYUM COUNTY|ORION OSMAN|BOOK
+KUMI|KUMI MUNICIPALITY|AMORIOT MARGARET GRACE KHEDI|CANDLE
+KUMI|KUMI MUNICIPALITY|AOGON SILAS|RADIO
+KUMI|KUMI MUNICIPALITY|OCHOM RICHARD|NRM
+KUMI|KUMI MUNICIPALITY|OLABORO CHARLES|CLOCK
+KUMI|KUMI MUNICIPALITY|OMALINGA SIMON PETER|DP
+LIRA|ERUTE COUNTY NORTH|AKELLO CHRISTINE OGWANG GWOK ADAKO|TABLE
+LIRA|ERUTE COUNTY NORTH|AWANY JOSEPH|POT
+LIRA|ERUTE COUNTY NORTH|OJOK ISAAC ANGIRO GUTOMOI|FDC
+LIRA|ERUTE COUNTY NORTH|ONGOM PATRICK|NRM
+LIRA|ERUTE COUNTY NORTH|OPETO TONNY|BALL
+LIRA|ERUTE COUNTY NORTH|OPIO CHARLES BONNY|UPC
+LIRA|ERUTE COUNTY NORTH|OPIO EMMY JOHNSON|COFFEE
+LIRA|ERUTE COUNTY SOUTH|ENGOLA SAM|NRM
+LIRA|ERUTE COUNTY SOUTH|ODUR JONATHAN|UPC
+LIRA|ERUTE COUNTY SOUTH|OGWANG PETER|CUP
+LUWEERO|KATIKAMU COUNTY NORTH|GADDAFI NASSUR|NRM
+LUWEERO|KATIKAMU COUNTY NORTH|KASAGGA RONALD BAZANYANENGO|DF
+LUWEERO|KATIKAMU COUNTY NORTH|KASULE UMAR|CHAIR
+LUWEERO|KATIKAMU COUNTY NORTH|NDAWULA RONALD|RADIO
+LUWEERO|KATIKAMU COUNTY NORTH|SEKABIRA DENES|NUP
+LUWEERO|KATIKAMU COUNTY NORTH|SEMBATYA BENJAMIN|PFF
+LUWEERO|KATIKAMU COUNTY SOUTH|BIKWASI HARUNA RWAMUTAKITWA|COFFEE
+LUWEERO|KATIKAMU COUNTY SOUTH|KALUME ABUBAKER|NRM
+LUWEERO|KATIKAMU COUNTY SOUTH|KIMANJE NSIBAMBI PETER|CANDLE
+LUWEERO|KATIKAMU COUNTY SOUTH|KINTU MICHAEL|CHAIR
+LUWEERO|KATIKAMU COUNTY SOUTH|KIRUMIRA HASSAN|NUP
+LUWEERO|KATIKAMU COUNTY SOUTH|MAGARA PATRICIA|CLOCK
+LUWEERO|KATIKAMU COUNTY SOUTH|MUGISHA MARVIN|BALL
+LUWEERO|KATIKAMU COUNTY SOUTH|MUWANGA ALFRED|RADIO
+LUWEERO|KATIKAMU COUNTY SOUTH|NATTEMBO MILLY|PFF
+LUWEERO|KATIKAMU COUNTY SOUTH|SSEMAKULA GEORGE|DF
+LUWEERO|KATIKAMU COUNTY SOUTH|ZENA MERYCILLAR ALI|TABLE
+LUWEERO|BAMUNANIKA COUNTY|ANYINE ELIZABETH SALABWA|MEGAPHONE
+LUWEERO|BAMUNANIKA COUNTY|KAMYA STANLEY KIGOZI|PFF
+LUWEERO|BAMUNANIKA COUNTY|KIYINI ROBERT|NRM
+LUWEERO|BAMUNANIKA COUNTY|LUGALAMA THOMAS|FDC
+LUWEERO|BAMUNANIKA COUNTY|SEWABUGA THOMPSON MAKAMAZIBU|CHAIR
+LUWEERO|BAMUNANIKA COUNTY|SSEKITOLEEKO ROBERT|NUP
+LUWEERO|BAMUNANIKA COUNTY|SSENYANGE INNOCENT|DF
+MASAKA|BUKOTO COUNTY EAST|BABIRYE KITYO SARAH|NRM
+MASAKA|BUKOTO COUNTY EAST|BUGEMBE FRANK NYANZI|COFFEE
+MASAKA|BUKOTO COUNTY EAST|KANYIKE RONALD EVANS|NUP
+MASAKA|BUKOTO COUNTY EAST|KIZITO BAKER DAVID|TABLE
+MASAKA|BUKOTO COUNTY EAST|MBIGO CHRISTOPHER|CLOCK
+MASAKA|BUKOTO COUNTY EAST|NALUBYAYI ZAHARA TALIDDA|DF
+MASAKA|BUKOTO COUNTY EAST|SSEMAGANDA JAMES|DP
+MASAKA|BUKOTO COUNTY CENTRAL|BATEMYETTO ANDREW LUKYAMUZI|DF
+MASAKA|BUKOTO COUNTY CENTRAL|KAWEESI JIMMY|CLOCK
+MASAKA|BUKOTO COUNTY CENTRAL|KAZIBWE MAGELLAN|BALL
+MASAKA|BUKOTO COUNTY CENTRAL|KIVUMBI JAMIRU|NUP
+MASAKA|BUKOTO COUNTY CENTRAL|NTAMU ALEX KALINZI|SAUCEPAN
+MASAKA|BUKOTO COUNTY CENTRAL|SEBAMALA RICHARD|DP
+MASAKA|BUKOTO COUNTY CENTRAL|SSEREMBA GODFREY MAYANJA|NRM
+MASAKA|BUKOTO COUNTY CENTRAL|TALEMWA GEORGE|CANDLE
+MASINDI|BUJENJE COUNTY|KASAIJA ROGERS WYCLIFFE|NUP
+MASINDI|BUJENJE COUNTY|KASUMBA PATRICK PADDY|BALL
+MASINDI|BUJENJE COUNTY|KIIZA KENNETH NYENDWOHA|NRM
+MASINDI|BUJENJE COUNTY|KYAMANYWA PHILIP|FDC
+MASINDI|BUJENJE COUNTY|SAFARI FRED|CLOCK
+MASINDI|BUJENJE COUNTY|TUGUME WILSON|CHAIR
+MASINDI|BURULI COUNTY|AKUGIZIBWE ALED RONALD|NRM
+MASINDI|BURULI COUNTY|BANAGE FREDRICK BITAMALE|FDC
+MASINDI|BURULI COUNTY|BARONGO FRED|BOOK
+MASINDI|BURULI COUNTY|MUGISA JULIUS|CANDLE
+MASINDI|BURULI COUNTY|MWETEGYA ZACHEUS|BOREHOLE
+MASINDI|BURULI COUNTY|NYAKOJO ISMAIL ABWOLI|CLOCK
+MASINDI|BURULI COUNTY|ONGEI PATRICK|DF
+MASINDI|MASINDI MUNICIPALITY|ABWOOLI BUSINGE JOAB|FDC
+MASINDI|MASINDI MUNICIPALITY|BYAMUKAMA ROGERS|NRM
+MASINDI|MASINDI MUNICIPALITY|BYARUHANGA COSMAS|CHAIR
+MASINDI|MASINDI MUNICIPALITY|WANDERA STEVEN|NUP
+MBALE|BUNGOKHO COUNTY NORTH|GIZAMBA ALIYI|FDC
+MBALE|BUNGOKHO COUNTY NORTH|MAGOLO JOHN FAITH|CHAIR
+MBALE|BUNGOKHO COUNTY NORTH|WAMBEDE MOSES|CLOCK
+MBALE|BUNGOKHO COUNTY NORTH|WANYENYA SHAFIGA|NRM
+MBALE|BUNGOKHO COUNTY NORTH|WAZEMBA HUSSEIN|RADIO
+MBALE|BUNGOKHO COUNTY SOUTH|BALAYO JONAN|FDC
+MBALE|BUNGOKHO COUNTY SOUTH|MASABA NIMRODE|NUP
+MBALE|BUNGOKHO COUNTY SOUTH|WANDWASI ROBERT|CHAIR
+MBALE|BUNGOKHO COUNTY SOUTH|WOKURI GEOFREY|NRM
+MBALE|BUNGOKHO CENTRAL COUNTY|MABONGA GODFREY NATIKO|PPP
+MBALE|BUNGOKHO CENTRAL COUNTY|MASABA MUHAMOOD MUTENYO|NRM
+MBALE|BUNGOKHO CENTRAL COUNTY|NANGAYI GUYSON|ANT
+MBALE|BUNGOKHO CENTRAL COUNTY|WAMONO GEORGE|CLOCK
+MBALE|BUNGOKHO CENTRAL COUNTY|WANANDA GIDEON WILSON|NUP
+MBALE|BUNGOKHO CENTRAL COUNTY|WANDA MARTIN BEN|FDC
+MBALE|BUNGOKHO CENTRAL COUNTY|WANDA RICHARD|RADIO
+MBALE|BUNGOKHO CENTRAL COUNTY|WERIKHE KAFABUSA MICHEAL|CHAIR
+MBARARA|KASHARI NORTH COUNTY|BATARINGAYA BASIL RWANKWENE|CHAIR
+MBARARA|KASHARI NORTH COUNTY|MUGUME ASAPH|DP
+MBARARA|KASHARI NORTH COUNTY|MUSINGUZI PATRICK|NRM
+MBARARA|KASHARI SOUTH COUNTY|KAKURU JACKSON|BOAT
+MBARARA|KASHARI SOUTH COUNTY|MWESIGWA EDMUND|CLOCK
+MBARARA|KASHARI SOUTH COUNTY|NAMARA HARRIET|CANDLE
+MBARARA|KASHARI SOUTH COUNTY|TUMUSIIME JOHN BOSCO|NRM
+MOROTO|MATHENIKO COUNTY|AKOL CEASAR ABURA|BOREHOLE
+MOROTO|MATHENIKO COUNTY|LOKII JOHN BAPTIST|NRM
+MOROTO|MATHENIKO COUNTY|LOTUKEI RAPHEAL DEAN|CHAIR
+MOROTO|MOROTO MUNICIPALITY|ADIAKA CHARLES ACHOTOI|CLOCK
+MOROTO|MOROTO MUNICIPALITY|ADOME FRANCIS LORIKA|NRM
+MOROTO|MOROTO MUNICIPALITY|ANGELLA FRED|CHAIR
+MOROTO|MOROTO MUNICIPALITY|ANGELLA ZAINAB ALI|FDC
+MOROTO|MOROTO MUNICIPALITY|OJAMUGE GEORGE FRANCIS|NUP
+MOROTO|TEPETH COUNTY|LOGIT ROBERT|NUP
+MOROTO|TEPETH COUNTY|LOKAWUA MICHAEL WILSON|NRM
+MOROTO|TEPETH COUNTY|LOKORU ALBERT|CHAIR
+MOYO|WEST MOYO COUNTY|ALERO TOM AZA|NRM
+MOYO|WEST MOYO COUNTY|ANYAMA GILBERT KANDARUKU|HOUSE
+MOYO|WEST MOYO COUNTY|AWIO LILLIAN TEMAIYA|DF
+MOYO|WEST MOYO COUNTY|LAGU CHARLES|CANDLE
+MPIGI|MAWOKOTA COUNTY NORTH|AKOL SAM|RADIO
+MPIGI|MAWOKOTA COUNTY NORTH|KIYAGA HILLARY INNOCENT|NUP
+MPIGI|MAWOKOTA COUNTY NORTH|KIYEMBA BASHIR MANDE|POT
+MPIGI|MAWOKOTA COUNTY NORTH|KYAMBADDE AMELIA ANNE|NRM
+MPIGI|MAWOKOTA COUNTY NORTH|MATOVU GEOFREY|COFFEE
+MPIGI|MAWOKOTA COUNTY NORTH|NVIIRI DAVID|DP
+MPIGI|MAWOKOTA COUNTY NORTH|SSENTUME ANDREW|CLOCK
+MPIGI|MAWOKOTA COUNTY SOUTH|KATO JOSEPH LUBEGA|BALL
+MPIGI|MAWOKOTA COUNTY SOUTH|LUBYAYI JOHNBOSCO SEGUYA|HOUSE
+MPIGI|MAWOKOTA COUNTY SOUTH|NAKAWUKI SUSAN NSAMBU|NRM
+MPIGI|MAWOKOTA COUNTY SOUTH|NSAMBA BENON|DP
+MPIGI|MAWOKOTA COUNTY SOUTH|NSIBAMBI YUSUF|FDC
+MPIGI|MAWOKOTA COUNTY SOUTH|SSEJJEMBA MARTINE|NUP
+MPIGI|MAWOKOTA COUNTY SOUTH|TUSUBIRA SOBABU|CLOCK
+MUBENDE|BUWEKULA COUNTY|KAKOOZA JOSEPH|NRM
+MUBENDE|BUWEKULA COUNTY|KULABIRAWO EDWARD|COFFEE
+MUBENDE|BUWEKULA COUNTY|MUJAWIMANA JUDITH|CLOCK
+MUBENDE|BUWEKULA COUNTY|MUKASA FRED MBIDDE|DP
+MUBENDE|BUWEKULA COUNTY|NDAGIZIMAANA STEPHEN|NUP
+MUBENDE|KASAMBYA COUNTY|KABANDA DAVID|NRM
+MUBENDE|KASAMBYA COUNTY|MUHUMUZA HENRY|CLOCK
+MUBENDE|MUBENDE MUNICIPALITY|AKANKWASA RAMATHAN MWESIGYE|BOAT
+MUBENDE|MUBENDE MUNICIPALITY|LUBEGA BASHIR SSEMPA|CLOCK
+MUBENDE|MUBENDE MUNICIPALITY|MASEMBE DEO MUJABI|NRM
+MUBENDE|MUBENDE MUNICIPALITY|NABAWANUKA SUMAYAH|NUP
+MUBENDE|BUWEKULA SOUTH COUNTY|MUBANGIZI DEDAN|NRM
+MUBENDE|BUWEKULA SOUTH COUNTY|SEMPIIRA EDWARD|NUP
+MUBENDE|BUWEKULA SOUTH COUNTY|TUMWESIGYE FRED|CLOCK
+MUKONO|MUKONO COUNTY NORTH|DRASI ISAAC|CLOCK
+MUKONO|MUKONO COUNTY NORTH|KIBUULE RONALD|NRM
+MUKONO|MUKONO COUNTY NORTH|KIWANUKA ABDALLAH|NUP
+MUKONO|MUKONO COUNTY NORTH|LUKUBIRA MOSES BAKUBI|PFF
+MUKONO|MUKONO COUNTY NORTH|NSUBUGA KENNETH SSEBAGAYUNGA|DP
+MUKONO|MUKONO COUNTY NORTH|SSEMUSU STEPHEN|CHAIR
+MUKONO|MUKONO COUNTY SOUTH|GIBONE ESTHER|CLOCK
+MUKONO|MUKONO COUNTY SOUTH|KAYONDO FRED|DP
+MUKONO|MUKONO COUNTY SOUTH|KIKULWE LIVING ROBERT|COFFEE
+MUKONO|MUKONO COUNTY SOUTH|KINTU TADEO|NRM
+MUKONO|MUKONO COUNTY SOUTH|LUSWATA VINCENT GRACE|BOAT
+MUKONO|MUKONO COUNTY SOUTH|MALE WILSON|RADIO
+MUKONO|MUKONO COUNTY SOUTH|MASERUKA ROBERT|NUP
+MUKONO|MUKONO COUNTY SOUTH|MWESIGWA LOY|BALL
+MUKONO|MUKONO COUNTY SOUTH|SSEKIKUBO MUBARAK MUBIRU|CHAIR
+MUKONO|MUKONO COUNTY SOUTH|WAMBEDE AMOS|BOOK
+MUKONO|NAKIFUMA COUNTY|BASIIMA ZULIYA|PFF
+MUKONO|NAKIFUMA COUNTY|KAFEERO SSEKITOLEKO ROBERT|NRM
+MUKONO|NAKIFUMA COUNTY|KAWOMBE LAMEKA|DP
+MUKONO|NAKIFUMA COUNTY|KIWANUKA SULAIMAN|NUP
+MUKONO|NAKIFUMA COUNTY|LUBOWA MICHEAL MARVIN|COFFEE
+MUKONO|NAKIFUMA COUNTY|LUMAMA ABUBAKER KAYONDO|FDC
+MUKONO|NAKIFUMA COUNTY|MUGAMBE JOSEPH KIF'OMUSANA|TABLE
+MUKONO|NAKIFUMA COUNTY|MUGIRYA WASSWA JOSHUA|CLOCK
+MUKONO|NAKIFUMA COUNTY|SSIMBWA FRED|DF
+MUKONO|MUKONO MUNICIPALITY|BAKALUBA PETER MUKASA|CHAIR
+MUKONO|MUKONO MUNICIPALITY|BAKIREKE NAMBOOZE BETTY|NUP
+MUKONO|MUKONO MUNICIPALITY|KAGIMU GEORGE FRED|DP
+MUKONO|MUKONO MUNICIPALITY|KULUBYA JOHN SERWANO|TELEVISION
+MUKONO|MUKONO MUNICIPALITY|MAWANDA ALLAN|DF
+MUKONO|MUKONO MUNICIPALITY|MBOGO DUNSTAN EDDIE|FDC
+MUKONO|MUKONO MUNICIPALITY|NABATANZI DAISY SSONKO SARAH|NRM
+MUKONO|MUKONO MUNICIPALITY|NABUKEERA HANIFA HUSSEIN|MEGAPHONE
+MUKONO|MUKONO MUNICIPALITY|NAKINTU SARAH|PFF
+MUKONO|MUKONO MUNICIPALITY|OMODING HERBERT|RADIO
+MUKONO|MUKONO MUNICIPALITY|SSENYONGA ANDREW|CLOCK
+NEBBI|PADYERE COUNTY|ANYWARACH JOSHUA CARTER|RADIO
+NEBBI|PADYERE COUNTY|ORYEMA DENIS OLYEKO|POT
+NEBBI|PADYERE COUNTY|OTIMGIW ISAAC ISMAIL|NRM
+NEBBI|NEBBI MUNICIPALITY|HASHIM SULAIMAN|NRM
+NEBBI|NEBBI MUNICIPALITY|OLAR RONALD ALFRED|HOUSE
+NEBBI|NEBBI MUNICIPALITY|ONGIERTHO EMMANUEL JOR|CLOCK
+NEBBI|NEBBI MUNICIPALITY|RUVA DENIS DONGE|BALL
+NTUNGAMO|KAJARA COUNTY|AHABWE VENANSIO|PFF
+NTUNGAMO|KAJARA COUNTY|KAIJUKA DAVISON|BANANA
+NTUNGAMO|KAJARA COUNTY|MUHWEZI DEUS|RADIO
+NTUNGAMO|KAJARA COUNTY|TUKAHIRWA JAMES BYENJERU HUNTER|NRM
+NTUNGAMO|RUHAAMA COUNTY|BARUNGI RICHARD|CAR
+NTUNGAMO|RUHAAMA COUNTY|KAKAJARA EUGENIA|MEGAPHONE
+NTUNGAMO|RUHAAMA COUNTY|KAMARA ALEX|UPC
+NTUNGAMO|RUHAAMA COUNTY|KAMARADI GUARD|NUP
+NTUNGAMO|RUHAAMA COUNTY|MUCUREEZI GERALD|ANT
+NTUNGAMO|RUHAAMA COUNTY|NKWASIBWE ZINKURATIRE HENRY|COFFEE
+NTUNGAMO|RUHAAMA COUNTY|RWAKIMARI BEATRICE|NRM
+NTUNGAMO|RUSHENYI COUNTY|KABASHARIRA NAOME|NRM
+NTUNGAMO|RUSHENYI COUNTY|MPUMWIRE MAGAMBO|CLOCK
+NTUNGAMO|RUSHENYI COUNTY|NIWAMANYA BARAM|DF
+NTUNGAMO|RUSHENYI COUNTY|NIWAMANYA HERBERT NYONGOZI|CHAIR
+NTUNGAMO|RUSHENYI COUNTY|TWINE'MANZI KAMUGIRA|NUP
+NTUNGAMO|NTUNGAMO MUNICIPALITY|BEYENDEZA EDWARD|BALL
+NTUNGAMO|NTUNGAMO MUNICIPALITY|KARUHANGA GERALD KAFUREEKA|CLOCK
+NTUNGAMO|NTUNGAMO MUNICIPALITY|MUSINGUZI YONA|NRM
+NTUNGAMO|NTUNGAMO MUNICIPALITY|RUBAHAMYA MAGAMBO|NUP
+NTUNGAMO|RUHAAMA EAST COUNTY|KAHIMA MOSES MUGABE|NRM
+NTUNGAMO|RUHAAMA EAST COUNTY|NUWENSHABA LEONARD|NUP
+PALLISA|PALLISA COUNTY|IBRAHIM IBRAHIM AISU|NRM
+PALLISA|PALLISA COUNTY|KATEU GODFREY|NUP
+PALLISA|PALLISA COUNTY|ODONGO SAMUEL|DF
+PALLISA|PALLISA COUNTY|OKOLER ENOCH|DP
+PALLISA|PALLISA COUNTY|OKURUT JULIUS ARECHO|BOREHOLE
+PALLISA|PALLISA COUNTY|OWAKO MARTIN|FDC
+PALLISA|AGULE COUNTY|AISU GODWIN ISAAC|DP
+PALLISA|AGULE COUNTY|EROKODE ANDREW OMAGOR|FDC
+PALLISA|AGULE COUNTY|ESIA AMOS|BOREHOLE
+PALLISA|AGULE COUNTY|IBASERET JOSEPHINE NKIBS|NRM
+PALLISA|AGULE COUNTY|OBEKE ADAM|BALL
+PALLISA|AGULE COUNTY|OCHWA DAVID|CHAIR
+PALLISA|AGULE COUNTY|OGWARI POLYCARP|CLOCK
+PALLISA|AGULE COUNTY|OJANGOLE ANTHONY|NUP
+PALLISA|AGULE COUNTY|OKELLO HERBERT|CANDLE
+PALLISA|KIBALE COUNTY|OKWI CONSTANTINE|NRM
+PALLISA|KIBALE COUNTY|OSEKU RICHARD ORIEBO|BALL
+PALLISA|KIBALE COUNTY|OTULEM JOHN BOSCO AQUINO|CLOCK
+PALLISA|GOGONYO COUNTY|BANTALIB ISSA TALIGOLA|RADIO
+PALLISA|GOGONYO COUNTY|OLUKA IVAN|NUP
+PALLISA|GOGONYO COUNTY|ONAIGO HENRY|FDC
+PALLISA|GOGONYO COUNTY|ORONE DERRICK|NRM
+PALLISA|GOGONYO COUNTY|WADAMBISHA NATHAN DICKSON|BALL
+RAKAI|KOOKI COUNTY|KIGGUNDU ERIABU SSANGO|NUP
+RAKAI|KOOKI COUNTY|SENGABI SAMUEL|BALL
+RAKAI|KOOKI COUNTY|SSENGABI LECOBOAM|DF
+RAKAI|KOOKI COUNTY|TAYEBWA DIDAS KABUMBUZA|NRM
+RAKAI|BUYAMBA COUNTY|KAYIMA DESIRE OSBORM|NUP
+RAKAI|BUYAMBA COUNTY|MANDERA AMOS|CLOCK
+RAKAI|BUYAMBA COUNTY|SSEMWANGA GYAVIIRA|NRM
+RUKUNGIRI|RUBABO COUNTY|MWESIGWA MATHIAS|NRM
+RUKUNGIRI|RUBABO COUNTY|NABAASA ALLAN|FDC
+RUKUNGIRI|RUBABO COUNTY|NAMANYA NABOTH|PFF
+RUKUNGIRI|RUBABO COUNTY|NGABIRANO ERNEST KATARA|CLOCK
+RUKUNGIRI|RUBABO COUNTY|NIWABIINE ANDREW|MEGAPHONE
+RUKUNGIRI|RUBABO COUNTY|RUGONDE ALEX|COFFEE
+RUKUNGIRI|RUBABO COUNTY|SHABAMAGARA EUNICE|DP
+RUKUNGIRI|RUBABO COUNTY|TUMWEBAZE MOREEN|CANDLE
+RUKUNGIRI|RUBABO COUNTY|TUSHABOMWE DAVID NDINDIRIZE|CHAIR
+RUKUNGIRI|RUJUMBURA COUNTY|AMANYA ANACLET|RADIO
+RUKUNGIRI|RUJUMBURA COUNTY|ARIHO NASASIRA|FDC
+RUKUNGIRI|RUJUMBURA COUNTY|KARENZI GERALD KOOLI|MEGAPHONE
+RUKUNGIRI|RUJUMBURA COUNTY|MAGEZI HERBERT|CLOCK
+RUKUNGIRI|RUJUMBURA COUNTY|MUHWEZI JIM KATUGUGU|NRM
+RUKUNGIRI|RUJUMBURA COUNTY|MUREBIRE JUNIOR RWENDEIRE|SAUCEPAN
+RUKUNGIRI|RUJUMBURA COUNTY|NIWAGABA SIMON|BALL
+RUKUNGIRI|RUJUMBURA COUNTY|OWOMUGISHA JOHN PADDY|CHAIR
+RUKUNGIRI|RUJUMBURA COUNTY|TUMUHEIRWE FRED TURYAMUHWEZA|PFF
+RUKUNGIRI|RUJUMBURA COUNTY|TUMUHIMBISE HILLARY|NUP
+RUKUNGIRI|RUKUNGIRI MUNICIPALITY|AKANYIJUKA RICHARD|CANDLE
+RUKUNGIRI|RUKUNGIRI MUNICIPALITY|KAMATENETI INGRID TURINAWE|PFF
+RUKUNGIRI|RUKUNGIRI MUNICIPALITY|NUWAGABA WALLEN TUMWINE|CLOCK
+RUKUNGIRI|RUKUNGIRI MUNICIPALITY|TUMUKUNDE HENRY KAKURUGU|NRM
+SOROTI|SOROTI COUNTY|AEKU PATRICK|NRM
+SOROTI|SOROTI COUNTY|EIGU DANIEL|FDC
+SOROTI|SOROTI COUNTY|EJOKU STEPHEN|BALL
+SOROTI|SOROTI COUNTY|ELUPE MESHULLAM|NUP
+SOROTI|SOROTI COUNTY|ENINU SAMUEL|CHAIR
+SOROTI|SOROTI COUNTY|OMARA EMMANUEL|PFF
+SOROTI|SOROTI COUNTY|ORIOKOT JIMMY|PPP
+SOROTI|DAKABELA COUNTY|ANYIMO HARRIET|POT
+SOROTI|DAKABELA COUNTY|EDOPU PETER EDEKU|NRM
+SOROTI|DAKABELA COUNTY|ELOTU COSMAS|CANDLE
+SOROTI|DAKABELA COUNTY|ERAU JONATHAN|FDC
+SOROTI|DAKABELA COUNTY|ODONGO JAMES|CHAIR
+SOROTI|DAKABELA COUNTY|OKELLO MOSES|BALL
+SOROTI|GWERI COUNTY|ARIKO HERBERT EDMUND OKWORO|NRM
+SOROTI|GWERI COUNTY|ASUBU DAVID|CANDLE
+SOROTI|GWERI COUNTY|EKUDO TOM JULIUS|FDC
+SOROTI|GWERI COUNTY|ENINU SAMUEL EKAJU|CLOCK
+SOROTI|GWERI COUNTY|OPOLOT ABEL|CHAIR
+TORORO|WEST BUDAMA COUNTY NORTH|ALIRA DAVID PECHOKISIKA OPII|PPP
+TORORO|WEST BUDAMA COUNTY NORTH|ALUKI GEORGE|DP
+TORORO|WEST BUDAMA COUNTY NORTH|OCHAI MAXIMUS|NRM
+TORORO|WEST BUDAMA COUNTY NORTH|OCHIENG HENRY|NUP
+TORORO|WEST BUDAMA COUNTY NORTH|ODOY PHILIP|RADIO
+TORORO|WEST BUDAMA COUNTY NORTH|OFAFA PATRICK|PFF
+TORORO|WEST BUDAMA COUNTY NORTH|OFWONO EMMAN GASTER|BALL
+TORORO|WEST BUDAMA COUNTY NORTH|OKONGO LEO|FDC
+TORORO|WEST BUDAMA COUNTY NORTH|OKORI HENRY OKUMU|BOREHOLE
+TORORO|WEST BUDAMA COUNTY NORTH|OTHIENO OKOTH RICHARD|CLOCK
+TORORO|WEST BUDAMA COUNTY SOUTH|KISANGALA ONGHWENS KAGULU|PFF
+TORORO|WEST BUDAMA COUNTY SOUTH|OKETCHO GEORGE|NRM
+TORORO|WEST BUDAMA COUNTY SOUTH|OKETCHO SOLOMON|CUP
+TORORO|WEST BUDAMA COUNTY SOUTH|OTIAM EMMANUEL OTAALA|CANDLE
+TORORO|TORORO SOUTH COUNTY|ANGURA FREDRICK|NRM
+TORORO|TORORO SOUTH COUNTY|NAMISI EUNICE|CLOCK
+TORORO|TORORO SOUTH COUNTY|OKACHUGA WILSON|CANDLE
+TORORO|TORORO SOUTH COUNTY|OPUA ALEX EMONGAS|HOUSE
+TORORO|TORORO MUNICIPALITY|APOLLO YERI OFWONO|NRM
+TORORO|TORORO MUNICIPALITY|NANDALA ANNET KIMBOWA|MEGAPHONE
+TORORO|TORORO MUNICIPALITY|OCHOM PATRICK OGUTA|BALL
+TORORO|TORORO MUNICIPALITY|ODAKA ASUMAN MARIJAN|NEED
+TORORO|TORORO MUNICIPALITY|OKWARE EDWARD|CUP
+TORORO|TORORO MUNICIPALITY|OWOR VALANTINE|NUP
+TORORO|TORORO MUNICIPALITY|SHYAM JAY TANNA|POT
+TORORO|TORORO NORTH COUNTY|EKANYA GEOFREY|FDC
+TORORO|TORORO NORTH COUNTY|NYAKECHO ANNET OKWENYE|SAUCEPAN
+TORORO|TORORO NORTH COUNTY|OBBO JOHNSON|CLOCK
+TORORO|TORORO NORTH COUNTY|OCHIENG SIMON PETER|NUP
+TORORO|TORORO NORTH COUNTY|OCHOM JOSHUA OKONGO|CUP
+TORORO|TORORO NORTH COUNTY|ODOI SHADRACK|PFF
+TORORO|TORORO NORTH COUNTY|OWINO NICHOLAS SIMON|NRM
+TORORO|TORORO NORTH COUNTY|TANGA JACKSON MANDY|DF
+TORORO|WEST BUDAMA CENTRAL COUNTY|APOLLO JENNIFER|UPC
+TORORO|WEST BUDAMA CENTRAL COUNTY|OBOTH MARKSONS JACOB|NRM
+TORORO|WEST BUDAMA CENTRAL COUNTY|OKOTH RONALD|NUP
+TORORO|WEST BUDAMA NORTH EAST COUNTY|ODOI-OYWELOWO FOX|HOUSE
+TORORO|WEST BUDAMA NORTH EAST COUNTY|OFWONO JOSEPH OTAWA|DF
+TORORO|WEST BUDAMA NORTH EAST COUNTY|OGANDI DENIS PETER|CLOCK
+TORORO|WEST BUDAMA NORTH EAST COUNTY|ONYANGO ROBERT|CUP
+TORORO|WEST BUDAMA NORTH EAST COUNTY|OSINDE OWOR JIMMY OKONGO|CHAIR
+TORORO|WEST BUDAMA NORTH EAST COUNTY|OWERE RICHARD MACHIKA|NRM
+TORORO|WEST BUDAMA NORTH EAST COUNTY|OWOR ANTHONY DAMASCUS|BOOK
+ADJUMANI|ADJUMANI WEST COUNTY|ALI MOSES|NRM
+ADJUMANI|ADJUMANI WEST COUNTY|DRAGA GASPER|RADIO
+ADJUMANI|ADJUMANI WEST COUNTY|IJJO STEPHEN PETER|NUP
+ADJUMANI|ADJUMANI WEST COUNTY|TANDRUPASI PATRICK|FDC
+ADJUMANI|ADJUMANI EAST COUNTY|ANGEL DULU MARK|NRM
+ADJUMANI|ADJUMANI EAST COUNTY|ECHIMA PASCAS|CANDLE
+ADJUMANI|ADJUMANI EAST COUNTY|MAMAWI JAMES|CHAIR
+BUGIRI|BUKOOLI COUNTY CENTRAL|KIBWIKA IBRAHIM|RADIO
+BUGIRI|BUKOOLI COUNTY CENTRAL|LUWANGA FREDDIE DAVID MULENGANI|CLOCK
+BUGIRI|BUKOOLI COUNTY CENTRAL|MUKAMA ABUBAKALI|NUP
+BUGIRI|BUKOOLI COUNTY CENTRAL|MUKUVE MUGAGGA KAREMIRE|PFF
+BUGIRI|BUKOOLI COUNTY CENTRAL|MUWANIKA SADAM|TABLE
+BUGIRI|BUKOOLI COUNTY CENTRAL|MUWESA GODFREY|CHAIR
+BUGIRI|BUKOOLI COUNTY CENTRAL|MWONDHA JOSEPH|BALL
+BUGIRI|BUKOOLI COUNTY CENTRAL|NAKITANDWE SHAKIRA|DF
+BUGIRI|BUKOOLI COUNTY CENTRAL|SILWANY SOLOMON|NRM
+BUGIRI|BUKOOLI COUNTY CENTRAL|WANDERA ISMAIL ONYANGO|BOREHOLE
+BUGIRI|BUKOOLI COUNTY NORTH|AYAGALACHI JAMALI|NUP
+BUGIRI|BUKOOLI COUNTY NORTH|BALIGEYA GEORGE MAGANDA|NRM
+BUGIRI|BUKOOLI COUNTY NORTH|KIZIRE IBRAHIM NAKENDO|CAR
+BUGIRI|BUKOOLI COUNTY NORTH|MUSENERO JULIUS|PFF
+BUGIRI|BUKOOLI COUNTY NORTH|NAKENDO ISAAC|CLOCK
+BUGIRI|BUKOOLI COUNTY NORTH|OKEYA JOSEPH|FDC
+BUGIRI|BUGIRI MUNICIPALITY|BASALIRWA ASUMAN|JEEMA
+BUGIRI|BUGIRI MUNICIPALITY|BINDYA PAUL KAIGIYA|PFF
+BUGIRI|BUGIRI MUNICIPALITY|EGESA MERCELLINO MANGENI|NUP
+BUGIRI|BUGIRI MUNICIPALITY|MUKWAYA BRIAN|DP
+BUGIRI|BUGIRI MUNICIPALITY|NABIRYE PHOEBE|CLOCK
+BUGIRI|BUGIRI MUNICIPALITY|OKETCHO JOHN FRANCIS|NRM
+BUGIRI|BUGIRI MUNICIPALITY|WAFULA STEPHEN|FDC
+BUSIA|SAMIA BUGWE COUNTY NORTH|AMAM VINCENT EGESA|NUP
+BUSIA|SAMIA BUGWE COUNTY NORTH|EMORUT OKUMU JOHN|CHAIR
+BUSIA|SAMIA BUGWE COUNTY NORTH|HASUBI DEOGRATIAS NJOKI|DP
+BUSIA|SAMIA BUGWE COUNTY NORTH|MULAYI PEACE DEBORAH|POT
+BUSIA|SAMIA BUGWE COUNTY NORTH|MULIMBA JOHN|NRM
+BUSIA|SAMIA BUGWE COUNTY NORTH|PADDE GERALD AUKU|TABLE
+BUSIA|SAMIA BUGWE COUNTY NORTH|WANDERA JOHN PAUL|RADIO
+BUSIA|SAMIA BUGWE COUNTY SOUTH|ACHOKA EGESA FREDDY|NUP
+BUSIA|SAMIA BUGWE COUNTY SOUTH|BWIRE ROBERT NGWABE|CHAIR
+BUSIA|SAMIA BUGWE COUNTY SOUTH|EGESSA PATRICK NEINDA|DP
+BUSIA|SAMIA BUGWE COUNTY SOUTH|MAGANDA JULIUS WANDERA|NRM
+BUSIA|SAMIA BUGWE COUNTY SOUTH|OKUMU JUSTUS|FDC
+BUSIA|SAMIA BUGWE COUNTY SOUTH|WERE GODFREY ODERO|BALL
+BUSIA|BUSIA MUNICIPALITY|BARASA LIVING OUMA|BALL
+BUSIA|BUSIA MUNICIPALITY|ELUKUDO EMMANUEL|CHAIR
+BUSIA|BUSIA MUNICIPALITY|KAKAIRE HUSSEN|FDC
+BUSIA|BUSIA MUNICIPALITY|KIBEDI MOSES|RADIO
+BUSIA|BUSIA MUNICIPALITY|MAKOKHA SAMUEL|PFF
+BUSIA|BUSIA MUNICIPALITY|MULEMYA ISMAIL SOWED|NRM
+BUSIA|BUSIA MUNICIPALITY|TAAKA LILLIAN|DF
+BUSIA|BUSIA MUNICIPALITY|TABU SARAH|CLOCK
+BUSIA|BUSIA MUNICIPALITY|WANYAMA KENNEDY|NUP
+BUSIA|BUSIA MUNICIPALITY|WESONGA KAJUBA MICHAEL|TABLE
+BUSIA|SAMIA BUGWE CENTRAL COUNTY|BARAK TITUS WACHIRA|EPU
+BUSIA|SAMIA BUGWE CENTRAL COUNTY|HUGHES EDWARD|BALL
+BUSIA|SAMIA BUGWE CENTRAL COUNTY|MACHO HUDSON|DP
+BUSIA|SAMIA BUGWE CENTRAL COUNTY|MBIRIKA ERICK|KETTLE
+BUSIA|SAMIA BUGWE CENTRAL COUNTY|NGWABE DEOGRACIOUS|PFF
+BUSIA|SAMIA BUGWE CENTRAL COUNTY|NYANGWESO DENNIS|CHAIR
+BUSIA|SAMIA BUGWE CENTRAL COUNTY|OUMA BERNARD WABWIRE|NUP
+BUSIA|SAMIA BUGWE CENTRAL COUNTY|OUMA PATRICK|HOUSE
+BUSIA|SAMIA BUGWE CENTRAL COUNTY|WANYAMA RICHARD|NRM
+KATAKWI|USUK COUNTY|EPEL ALEX|FDC
+KATAKWI|USUK COUNTY|OGULO SIMON PETER|DP
+KATAKWI|USUK COUNTY|OKIDENY CHARLES|CHAIR
+KATAKWI|USUK COUNTY|OKIROR BOSCO|CLOCK
+KATAKWI|USUK COUNTY|ONGOROK RICHARD|NRM
+KATAKWI|TOROMA COUNTY|AKISO BENJAMIN|NUP
+KATAKWI|TOROMA COUNTY|APORU ALLAN|BOREHOLE
+KATAKWI|TOROMA COUNTY|EKONGOT JOHN ROBERT|HOUSE
+KATAKWI|TOROMA COUNTY|ELAKAS WALTER OKIRING|MEGAPHONE
+KATAKWI|TOROMA COUNTY|EUPET JULIUS|CUP
+KATAKWI|TOROMA COUNTY|IKWAP PAUL|FDC
+KATAKWI|TOROMA COUNTY|KOLUO JOSEPH ANDREW|CHAIR
+KATAKWI|TOROMA COUNTY|OKELLO STEPHEN|CLOCK
+KATAKWI|TOROMA COUNTY|OKIROR BEN VERENADO|CANDLE
+KATAKWI|TOROMA COUNTY|OSSIYA SOLOMON ALEMU|NRM
+KATAKWI|NGARIAM COUNTY|APUDA IGNATIUS LOYOLA|FDC
+KATAKWI|NGARIAM COUNTY|EIDIT JOHN BAPTIST|CAR
+KATAKWI|NGARIAM COUNTY|MULALU DANIEL|CHAIR
+KATAKWI|NGARIAM COUNTY|OCHAILAP MICHAEL AKABWAI|NUP
+KATAKWI|NGARIAM COUNTY|OGWANG PETER|NRM
+KATAKWI|NGARIAM COUNTY|OMIAT ANDREW JOSEPH|UPC
+KATAKWI|NGARIAM COUNTY|OTUKO AUGUSTINE|CLOCK
+NAKASONGOLA|NAKASONGOLA COUNTY|BWANGA ROGERS SANDE|TABLE
+NAKASONGOLA|NAKASONGOLA COUNTY|KULABAKO MOSES|CLOCK
+NAKASONGOLA|NAKASONGOLA COUNTY|KYEYUNE IVAN|NUP
+NAKASONGOLA|NAKASONGOLA COUNTY|LUBEGA KAJURA GEORGE WILLIAM|RADIO
+NAKASONGOLA|NAKASONGOLA COUNTY|SEKAKONI JOEL BASEMERA|KETTLE
+NAKASONGOLA|NAKASONGOLA COUNTY|SEKAYINGO ROBERT|HOUSE
+NAKASONGOLA|NAKASONGOLA COUNTY|SERWADDA JULIUS|CHAIR
+NAKASONGOLA|NAKASONGOLA COUNTY|TIBERONDWA STEPHEN BUJINGO|NRM
+NAKASONGOLA|NAKASONGOLA COUNTY|WASSWA STEPHENSON|MEGAPHONE
+NAKASONGOLA|BUDYEBO COUNTY|BUYINZA DANIEL|BOAT
+NAKASONGOLA|BUDYEBO COUNTY|KIZZA ANDRIAN|NUP
+NAKASONGOLA|BUDYEBO COUNTY|MWESIGE GEOFREY BUKENYA|CLOCK
+NAKASONGOLA|BUDYEBO COUNTY|SEKYANZI BENARD KIRYA|TABLE
+NAKASONGOLA|BUDYEBO COUNTY|SSEBBUGGA-KIMEZE BERUNADO|NRM
+SSEMBABULE|LWEMIYAGA COUNTY|AINEBYOONA UNICENT|DF
+SSEMBABULE|LWEMIYAGA COUNTY|MIGADDE JOSEPH AMOOTI|BALL
+SSEMBABULE|LWEMIYAGA COUNTY|RWASHANDE EMMANUEL|NRM
+SSEMBABULE|LWEMIYAGA COUNTY|SSEKIKUBO THEODORE|CHAIR
+SSEMBABULE|MAWOGOLA SOUTH COUNTY|BYUMA OSWALD DEZ|NRM
+SSEMBABULE|MAWOGOLA SOUTH COUNTY|DDUMBA DENIS|TABLE
+SSEMBABULE|MAWOGOLA SOUTH COUNTY|MUKIIBI MAURICE|DF
+SSEMBABULE|MAWOGOLA SOUTH COUNTY|NAMUGGA GORRETH|NUP
+SSEMBABULE|MAWOGOLA NORTH COUNTY|AINE GODFREY KAGUTA|NRM
+SSEMBABULE|MAWOGOLA NORTH COUNTY|KIGONGO FRANCIS MASANGA|FDC
+SSEMBABULE|MAWOGOLA NORTH COUNTY|KIGONYA ANGELLAH NAMYALO|DP
+SSEMBABULE|MAWOGOLA NORTH COUNTY|LYAZI MOSES|PFF
+SSEMBABULE|MAWOGOLA NORTH COUNTY|SEMATA IDI|NUP
+SSEMBABULE|MAWOGOLA NORTH COUNTY|TUMWEBAZE JET JOHN NDAMAGI|BOOK
+SSEMBABULE|MAWOGOLA NORTH COUNTY|TWIINE JOHN EZRA|TELEVISION
+SSEMBABULE|MAWOGOLA WEST COUNTY|ANIFA BANGIRANA|NRM
+SSEMBABULE|MAWOGOLA WEST COUNTY|KARUHANGA BENON|CLOCK
+SSEMBABULE|MAWOGOLA WEST COUNTY|MAWANDA MOHAMMED|NUP
+SSEMBABULE|MAWOGOLA WEST COUNTY|MWEBAZE AFUZAL|BALL
+SSEMBABULE|MAWOGOLA WEST COUNTY|TWESIGYE HENRY|CANDLE
+KAMWENGE|KIBALE COUNTY|ABIGABA CUTHBERT MIREMBE|NRM
+KAMWENGE|KIBALE COUNTY|DUSABE EMMANUEL|BALL
+KAMWENGE|KIBALE COUNTY|KAMUGISHA PASTOR|MEGAPHONE
+KAMWENGE|KIBALE COUNTY|KASENENE POSIANO|CANDLE
+KAMWENGE|KIBALE COUNTY|KISEMBO CHARLES|RADIO
+KAMWENGE|KIBALE COUNTY|MBABAZI MOSES|CLOCK
+KAMWENGE|KIBALE COUNTY|NATURIINDA ELIJAH|CHAIR
+KAMWENGE|KIBALE COUNTY|TURYAHABWE MUHAMADI|CAR
+KAMWENGE|KIBALE EAST COUNTY|ASIIMWE CRISPAS|SAUCEPAN
+KAMWENGE|KIBALE EAST COUNTY|TUMWEBAZE FRANK KAGYIGYI|NRM
+KAMWENGE|KIBALE EAST COUNTY|TUMWIJUKYE NATHAN|BOOK
+KAYUNGA|BBAALE COUNTY|GAMBA BUKAHRI|NPP
+KAYUNGA|BBAALE COUNTY|KIIZA ARTHUR|NRM
+KAYUNGA|BBAALE COUNTY|KUMAMA NSAMBA GEORGE WILSON|BALL
+KAYUNGA|BBAALE COUNTY|KWIRI MUHAMADI|CMP
+KAYUNGA|BBAALE COUNTY|KYAGABA RONALD|CLOCK
+KAYUNGA|BBAALE COUNTY|MAITEKI RONALD MUKASA|CHAIR
+KAYUNGA|BBAALE COUNTY|MULIIKA ABDU|FDC
+KAYUNGA|BBAALE COUNTY|TEBANDEKE CHARLES|NUP
+KAYUNGA|NTENJERU COUNTY NORTH|BALIDDAWA GEOFREY BAGOBYA|NPP
+KAYUNGA|NTENJERU COUNTY NORTH|IGA ALEX|DP
+KAYUNGA|NTENJERU COUNTY NORTH|LUGOLOOBI AMOS|NRM
+KAYUNGA|NTENJERU COUNTY NORTH|MPIIMA JAMIR SSENOGA|CANDLE
+KAYUNGA|NTENJERU COUNTY NORTH|NABALAMBA SANDRA|CLOCK
+KAYUNGA|NTENJERU COUNTY NORTH|SSALI FREDRICK KAFEERO|NUP
+KAYUNGA|NTENJERU COUNTY NORTH|SSERUBIDDE GODFREY|RADIO
+KAYUNGA|NTENJERU COUNTY SOUTH|BASEKE FRED|NRM
+KAYUNGA|NTENJERU COUNTY SOUTH|KIMULI JOSEPH|PFF
+KAYUNGA|NTENJERU COUNTY SOUTH|LILWAANA MUZAMILU|EPU
+KAYUNGA|NTENJERU COUNTY SOUTH|MUKIIBI BADIRU|CLOCK
+KAYUNGA|NTENJERU COUNTY SOUTH|NAKANWAGI FLORENCE|SAUCEPAN
+KAYUNGA|NTENJERU COUNTY SOUTH|NSANJA PATRICK KAYONGO|NUP
+KYENJOJO|MWENGE COUNTY NORTH|AKUGIZIBWE LAWRENCE|NRM
+KYENJOJO|MWENGE COUNTY NORTH|MUHUMUZA DAVID|CHAIR
+KYENJOJO|MWENGE COUNTY NORTH|NATUKUNDA INNOCENT BITARIHO|NUP
+KYENJOJO|MWENGE COUNTY NORTH|SHIMIYE CLOD ARAALI|FDC
+KYENJOJO|MWENGE COUNTY SOUTH|BYAMUKAMA JAMES KWEBIIHA|CHAIR
+KYENJOJO|MWENGE COUNTY SOUTH|KALIIJA JAMES|FDC
+KYENJOJO|MWENGE COUNTY SOUTH|KUTEESA MARY KAMULI|NRM
+KYENJOJO|MWENGE COUNTY SOUTH|MUSABE GEORGE W|NUP
+KYENJOJO|MWENGE CENTRAL COUNTY|KASUKAALI METHUSELAH|NRM
+KYENJOJO|MWENGE CENTRAL COUNTY|MBAGO ASHIMEAL|NUP
+KYENJOJO|MWENGE CENTRAL COUNTY|NYANJURA DOREEN|PFF
+KYENJOJO|MWENGE CENTRAL COUNTY|SIISA PATRICK|MEGAPHONE
+MAYUGE|BUNYA COUNTY EAST|ALAMANZANI KINTU MULONDO|CLOCK
+MAYUGE|BUNYA COUNTY EAST|EKORO ALEX IRUKAN|NRM
+MAYUGE|BUNYA COUNTY EAST|KYONA ISMAIL|CHAIR
+MAYUGE|BUNYA COUNTY EAST|MAWEJJE SARAH NAKAGOLO|HOUSE
+MAYUGE|BUNYA COUNTY EAST|MUBIRU NOAH DENNIS|NPP
+MAYUGE|BUNYA COUNTY EAST|MUGHANDIA RASHID|BALL
+MAYUGE|BUNYA COUNTY EAST|WAIRA KYEWALABYE MAJEGERE SITINGO JAMES|NUP
+MAYUGE|BUNYA COUNTY SOUTH|BALIKOWA MOSES|FDC
+MAYUGE|BUNYA COUNTY SOUTH|ISABIRYE IDDI|CHAIR
+MAYUGE|BUNYA COUNTY SOUTH|KINTU AMINON|BOAT
+MAYUGE|BUNYA COUNTY SOUTH|MPAATA SALLEH|NRM
+MAYUGE|BUNYA COUNTY SOUTH|NTENDE ROBERT|NUP
+MAYUGE|BUNYA COUNTY SOUTH|TIBAGENDEKA FRANK|CLOCK
+MAYUGE|BUNYA COUNTY WEST|BABALANDA UTHUMAN|CLOCK
+MAYUGE|BUNYA COUNTY WEST|BAGIIRE AGGREY HENRY|NRM
+MAYUGE|BUNYA COUNTY WEST|BASOMA NELSON|FDC
+MAYUGE|BUNYA COUNTY WEST|BIDI MUSTAPHA|NUP
+MAYUGE|BUNYA COUNTY WEST|GANAFA YOWELI GERALD|MEGAPHONE
+MAYUGE|BUNYA COUNTY WEST|IKOMBA LABAN|BALL
+MAYUGE|BUNYA COUNTY WEST|KIRERI EMMANUEL|RADIO
+MAYUGE|BUNYA COUNTY WEST|MUGALULA ASHIRAF|DF
+MAYUGE|BUNYA COUNTY WEST|MUKISA MOSES MAX|CHAIR
+MAYUGE|BUNYA COUNTY WEST|NAIKA WAISWA RICHARD EDWARD|SAUCEPAN
+PADER|ARUU COUNTY|KOMAKECH CHRISTOPHER|NRM
+PADER|ARUU COUNTY|ODONGA OTTO|CANDLE
+PADER|ARUU NORTH COUNTY|KIBWOTA GEORGE|DF
+PADER|ARUU NORTH COUNTY|LAGORO LING ROBERT|PFF
+PADER|ARUU NORTH COUNTY|OBALO PATRICK|FDC
+PADER|ARUU NORTH COUNTY|OGENRWOT SAMUEL|UPC
+PADER|ARUU NORTH COUNTY|OKOT SANTA|PPP
+PADER|ARUU NORTH COUNTY|OLANYA TONNY OLENGE|BALL
+PADER|ARUU NORTH COUNTY|OOLA GEORGE|CLOCK
+PADER|ARUU NORTH COUNTY|OTTOBER WELLBORN ODIYA|NRM
+SIRONKO|BUDADIRI COUNTY EAST|KIMANYA TWAHA|NUP
+SIRONKO|BUDADIRI COUNTY EAST|NAKIYI JULIUS MUNTU|NRM
+SIRONKO|BUDADIRI COUNTY EAST|SSASAGA ISAIAS JOHNY|FDC
+SIRONKO|BUDADIRI COUNTY EAST|WOBOYA VICENT|CHAIR
+SIRONKO|BUDADIRI COUNTY WEST|BOSSA NASSAR|SPD
+SIRONKO|BUDADIRI COUNTY WEST|KISOLO JACKSON|SAUCEPAN
+SIRONKO|BUDADIRI COUNTY WEST|MAFABI ALEX|BALL
+SIRONKO|BUDADIRI COUNTY WEST|MAGOMBE FESTO|BOOK
+SIRONKO|BUDADIRI COUNTY WEST|MAGOMBE JACKSON|FDC
+SIRONKO|BUDADIRI COUNTY WEST|MAKWASI SHARIF|PFF
+SIRONKO|BUDADIRI COUNTY WEST|MANGALI CHARLES NABUBOLO|CHAIR
+SIRONKO|BUDADIRI COUNTY WEST|MASANGA ISAAC|NRM
+SIRONKO|BUDADIRI COUNTY WEST|MASHATE PETER MAGOMU|TELEVISION
+SIRONKO|BUDADIRI COUNTY WEST|MUDASIRU JAFARI|NUP
+SIRONKO|BUDADIRI COUNTY WEST|MUDEBO POLYCARP|DP
+SIRONKO|BUDADIRI COUNTY WEST|MUGEMBE AMOS|RADIO
+SIRONKO|BUDADIRI COUNTY WEST|MWAMBU HERBERT EMMANUEL|COFFEE
+SIRONKO|BUDADIRI COUNTY WEST|NAKISALI CHRISTOPHER|TABLE
+SIRONKO|BUDADIRI COUNTY WEST|WAGIMA CHRISTOPHER|CAR
+SIRONKO|BUDADIRI COUNTY WEST|WANDUYI FRANCIS MASHATE|MEGAPHONE
+SIRONKO|BUDADIRI COUNTY WEST|WANYENZE DOROTHY TABITHA|CANDLE
+SIRONKO|BUDADIRI COUNTY WEST|WANYONYI MICHEAL|HOUSE
+SIRONKO|BUDADIRI COUNTY WEST|WANYOTO GODFREY|CLOCK
+WAKISO|BUSIRO COUNTY EAST|BANGI FATUMA|ANT
+WAKISO|BUSIRO COUNTY EAST|BYENKYA LEONALD|BANANA
+WAKISO|BUSIRO COUNTY EAST|KALUNGI MASMOOS|JEEMA
+WAKISO|BUSIRO COUNTY EAST|KANGAAVE FRED|FDC
+WAKISO|BUSIRO COUNTY EAST|KIYIMBA ABDU|NRM
+WAKISO|BUSIRO COUNTY EAST|LUBEGA MEDARD SSEGGONA|CLOCK
+WAKISO|BUSIRO COUNTY EAST|LUTAAYA EDWARD|CANDLE
+WAKISO|BUSIRO COUNTY EAST|MATOVU EMMANUEL MAGOOLA|CHAIR
+WAKISO|BUSIRO COUNTY EAST|NAKATE LILLIAN|TABLE
+WAKISO|BUSIRO COUNTY EAST|NALUBOWA MARGRET|UPC
+WAKISO|BUSIRO COUNTY EAST|NASSOLO IRENE|EPU
+WAKISO|BUSIRO COUNTY EAST|SSENFUMA KAROOLI NALAGIRA|PFF
+WAKISO|BUSIRO COUNTY EAST|WALUKAGGA MATHIAS|NUP
+WAKISO|BUSIRO COUNTY NORTH|KAGGWA SWAIB NSEREKO|JEEMA
+WAKISO|BUSIRO COUNTY NORTH|KASTA HUSSEIN BUKENYA|HOUSE
+WAKISO|BUSIRO COUNTY NORTH|KATO DAMIANO|TABLE
+WAKISO|BUSIRO COUNTY NORTH|MAYANJA MOSES|NRM
+WAKISO|BUSIRO COUNTY NORTH|MUGISHA CHARLES KATONGOLE|DF
+WAKISO|BUSIRO COUNTY NORTH|NSUBUGA FRANK|BALL
+WAKISO|BUSIRO COUNTY NORTH|SENKUNGU MOSES|PFF
+WAKISO|BUSIRO COUNTY NORTH|SSEKIKUBO ASHIRAF|CHAIR
+WAKISO|BUSIRO COUNTY NORTH|SSEMAGANDA RONALD|NUP
+WAKISO|BUSIRO COUNTY NORTH|SSENTONGO EMMANUEL PIUS|RADIO
+WAKISO|BUSIRO COUNTY NORTH|TEBANDEKE JOHN BOSCO|CLOCK
+WAKISO|BUSIRO COUNTY SOUTH|BWANIKA MATHIAS LWANGA|CLOCK
+WAKISO|BUSIRO COUNTY SOUTH|DOKA SURURU|RADIO
+WAKISO|BUSIRO COUNTY SOUTH|KAYEMBA JOSEPH|BOOK
+WAKISO|BUSIRO COUNTY SOUTH|KENAN OPIO|NRM
+WAKISO|BUSIRO COUNTY SOUTH|KIKOMEKO SAUL|MEGAPHONE
+WAKISO|BUSIRO COUNTY SOUTH|MATOVU CHARLES|NUP
+WAKISO|BUSIRO COUNTY SOUTH|MPOLOGOMA GALABUZI|CANDLE
+WAKISO|BUSIRO COUNTY SOUTH|MUGENYI EDWARDS|BALL
+WAKISO|BUSIRO COUNTY SOUTH|MUTEKANGA JOSHUA - WILTORD|CMP
+WAKISO|BUSIRO COUNTY SOUTH|NAMUGGA GRACE|FDC
+WAKISO|BUSIRO COUNTY SOUTH|NDAGIRE LILIAN ROVINCE|DP
+WAKISO|KYADONDO COUNTY EAST|ALI MOSES|CHAIR
+WAKISO|KYADONDO COUNTY EAST|KANTINTI APOLLO|FDC
+WAKISO|KYADONDO COUNTY EAST|KAYANJA MOSES|BANANA
+WAKISO|KYADONDO COUNTY EAST|KAYONGO SOWEDI MALE|EPU
+WAKISO|KYADONDO COUNTY EAST|LULE TIMOTHY LUBERENGA|CMP
+WAKISO|KYADONDO COUNTY EAST|MAGALA SOLOMON|BOREHOLE
+WAKISO|KYADONDO COUNTY EAST|MAGEZI DAVID WILLIAM|RADIO
+WAKISO|KYADONDO COUNTY EAST|MUTARAMUZA PRINCE WILLIAM|POT
+WAKISO|KYADONDO COUNTY EAST|MUWONGE TOM|BALL
+WAKISO|KYADONDO COUNTY EAST|NANTEGE JACKIE PATIENCE|CLOCK
+WAKISO|KYADONDO COUNTY EAST|NASSALI MARIA MASEREKA|DP
+WAKISO|KYADONDO COUNTY EAST|NKUNYINGI MUWADA|NUP
+WAKISO|KYADONDO COUNTY EAST|SSIMBWA KHALID|HOUSE
+WAKISO|KYADONDO COUNTY EAST|SSOZI RAJJABU|PFF
+WAKISO|KYADONDO COUNTY EAST|TALEMWA CHRISTOPHER|NRM
+WAKISO|NANSANA MUNICIPALITY|BUGGAGA IDI MATOVU|NRM
+WAKISO|NANSANA MUNICIPALITY|KAIJA HAROLD SCANDRONE|PFF
+WAKISO|NANSANA MUNICIPALITY|KAWEESA STEPHEN|CHAIR
+WAKISO|NANSANA MUNICIPALITY|KAYAGA KYAMBADDE JULIET|BOREHOLE
+WAKISO|NANSANA MUNICIPALITY|KINTU FLORENCE|CLOCK
+WAKISO|NANSANA MUNICIPALITY|LUBOWA HENRY|DF
+WAKISO|NANSANA MUNICIPALITY|LUYINDA FRED|BALL
+WAKISO|NANSANA MUNICIPALITY|MUSOKE HAMISI WALUSIMBI|FDC
+WAKISO|NANSANA MUNICIPALITY|MUSOKE JOSEPH|TELEVISION
+WAKISO|NANSANA MUNICIPALITY|MUTEBI RAMATHAN|RADIO
+WAKISO|NANSANA MUNICIPALITY|ZAMBAALI BULASIO MUKASA|NUP
+WAKISO|MAKINDYE-SSABAGABO MUNICIPALITY|BIRUNGI REBECCA MARY|DP
+WAKISO|MAKINDYE-SSABAGABO MUNICIPALITY|LUTAAYA AKRAM|BALL
+WAKISO|MAKINDYE-SSABAGABO MUNICIPALITY|MAKULA JOSHUA|PFF
+WAKISO|MAKINDYE-SSABAGABO MUNICIPALITY|MUNDUNI PHILIP|NRM
+WAKISO|MAKINDYE-SSABAGABO MUNICIPALITY|MUZEYI ISAAC|FDC
+WAKISO|MAKINDYE-SSABAGABO MUNICIPALITY|NSAMBA JAVIRA LUBADDE|CMP
+WAKISO|MAKINDYE-SSABAGABO MUNICIPALITY|RWEGABA DICK|BOREHOLE
+WAKISO|MAKINDYE-SSABAGABO MUNICIPALITY|SSEMWANGA GODFREY|CLOCK
+WAKISO|MAKINDYE-SSABAGABO MUNICIPALITY|SSERUKENYA DAVID|NUP
+WAKISO|ENTEBBE MUNICIPALITY|ANDAMA ROGERS SNELL|BALL
+WAKISO|ENTEBBE MUNICIPALITY|GAMBA JANE SCHOLASTICA|MEGAPHONE
+WAKISO|ENTEBBE MUNICIPALITY|GASHAIJA SHYAKA STEVEN|NRM
+WAKISO|ENTEBBE MUNICIPALITY|KAKEMBO MICHAEL MBWATEKAMWA|DF
+WAKISO|ENTEBBE MUNICIPALITY|KANAKULYA YUSUFU GOLOOBA|BOOK
+WAKISO|ENTEBBE MUNICIPALITY|KAYANJA VINCENT DE PAUL|DP
+WAKISO|ENTEBBE MUNICIPALITY|KIYINGI JONATHAN SUCCESS|FDC
+WAKISO|ENTEBBE MUNICIPALITY|MUKUNGU ALBERT FREDRICK|CLOCK
+WAKISO|ENTEBBE MUNICIPALITY|NABATTA JOYCE NAMULI|NUP
+WAKISO|ENTEBBE MUNICIPALITY|NANTUMBWE IRENE MELINDA|EPU
+WAKISO|KIRA MUNICIPALITY|EIRU EPEDU ANDREW|FDC
+WAKISO|KIRA MUNICIPALITY|KANANURA DANIEL|NRM
+WAKISO|KIRA MUNICIPALITY|KATABARWA FRANK|CHAIR
+WAKISO|KIRA MUNICIPALITY|KATUNDA MOSES|CLOCK
+WAKISO|KIRA MUNICIPALITY|KATURAMU PATRICK|BALL
+WAKISO|KIRA MUNICIPALITY|MUSISI GEORGE|NUP
+WAKISO|KIRA MUNICIPALITY|NIWAGABA ARTHUR BRIGHT|CANDLE
+WAKISO|KIRA MUNICIPALITY|SSEMUJJU IBRAHIM|PFF
+WAKISO|KIRA MUNICIPALITY|TULYAZALWA MARK MUGISHA|BOOK
+YUMBE|ARINGA COUNTY|CHANDIGA GADAFI|NUP
+YUMBE|ARINGA COUNTY|EZAMA SIRAJI BRAHAN|NRM
+YUMBE|ARINGA COUNTY|OLEGA ASHRAF NOAH|BOREHOLE
+YUMBE|ARINGA COUNTY|TAIRI ASIRAFU|UPM
+YUMBE|ARINGA COUNTY|TIBRICHU HABIB AMIN|BANANA
+YUMBE|ARINGA NORTH COUNTY|KARIM MUSA|MEGAPHONE
+YUMBE|ARINGA NORTH COUNTY|ONZIMA GODFREY|NRM
+YUMBE|ARINGA SOUTH COUNTY|ALIONI YORKE ODRIA|NRM
+YUMBE|ARINGA SOUTH COUNTY|MUNDUA PATRICK HABIB|JEEMA
+YUMBE|ARINGA SOUTH COUNTY|MUSEMA MUDATHIR BRUCE|CHAIR
+YUMBE|ARINGA EAST COUNTY|OLEGA ISHAQA|NUP
+YUMBE|ARINGA EAST COUNTY|OLERU HUDA ABASON|NRM
+YUMBE|ARINGA EAST COUNTY|OMIA ZUBEIR JUVENILE|CLOCK
+KABERAMAIDO|KABERAMAIDO COUNTY|EDAKASI ALFRED ELALU-OLALE|NRM
+KABERAMAIDO|KABERAMAIDO COUNTY|EDECHU SAMUEL|FDC
+KABERAMAIDO|KABERAMAIDO COUNTY|OLOBO JAMES|HOUSE
+KABERAMAIDO|OCHERO COUNTY|ATOCON CALVIN|UPC
+KABERAMAIDO|OCHERO COUNTY|EMAJU ISAAC|TABLE
+KABERAMAIDO|OCHERO COUNTY|EMIGU JULIUS PETER|FDC
+KABERAMAIDO|OCHERO COUNTY|EPUTU LUBEN MELVIN|CLOCK
+KABERAMAIDO|OCHERO COUNTY|ISALA ERAGU VERONICA BICHETERO|BOOK
+KABERAMAIDO|OCHERO COUNTY|OCHIENG ANTHONY EOSU|SAUCEPAN
+KABERAMAIDO|OCHERO COUNTY|OKULLO FRANCIS|NRM
+KANUNGU|KINKIZI COUNTY EAST|AKAMPURIRA AKAMPA WA KARUMA|RADIO
+KANUNGU|KINKIZI COUNTY EAST|ARINEITWE SAM KAJOJO|CLOCK
+KANUNGU|KINKIZI COUNTY EAST|BARYOMUNSI CHRIS|NRM
+KANUNGU|KINKIZI COUNTY EAST|BYAMUKAMA ALEX|COFFEE
+KANUNGU|KINKIZI COUNTY EAST|KARUNGI RUTH TUKAHIRWA|CHAIR
+KANUNGU|KINKIZI COUNTY EAST|NATURINDA AGGREY|HOUSE
+KANUNGU|KINKIZI COUNTY EAST|NIWAMANYA BENEDICTO|PFF
+KANUNGU|KINKIZI COUNTY EAST|TABARUKA ARANS|FDC
+KANUNGU|KINKIZI COUNTY WEST|ATUHEIRE BRIAN|PFF
+KANUNGU|KINKIZI COUNTY WEST|NDUNGUTSE JOHN NGARUYE|RADIO
+KANUNGU|KINKIZI COUNTY WEST|NIRINGIYIMANA JAMES RUUGI KABERUKA|NRM
+KANUNGU|KINKIZI COUNTY WEST|RUSHOKORA VICTOR|CANDLE
+KANUNGU|KINKIZI COUNTY WEST|SAFARI CHRISTOPHER|CHAIR
+KANUNGU|KINKIZI COUNTY WEST|TURYATUNGA STEPHEN IKAMUKUBA|CLOCK
+NAKAPIRIPIRIT|CHEKWII COUNTY (KADAM)|ALEPER MOSES|CHAIR
+NAKAPIRIPIRIT|CHEKWII COUNTY (KADAM)|LONGOLI SIMON PETER|NRM
+NAKAPIRIPIRIT|CHEKWII EAST COUNTY|KALIBBALA FRED|POT
+NAKAPIRIPIRIT|CHEKWII EAST COUNTY|LOKERIS PETER TEKO|CHAIR
+NAKAPIRIPIRIT|CHEKWII EAST COUNTY|LOKORU STEPHENSON YOYO|NRM
+AMOLATAR|KIOGA COUNTY|ADUPA ONGWECH FELIX|NRM
+AMOLATAR|KIOGA COUNTY|ANGWECH COLLINE|UPC
+AMOLATAR|KIOGA COUNTY|OKOT MOSES JUNIOR|FDC
+AMOLATAR|KIOGA COUNTY|ONGIA FRANCIS JOHN|BOREHOLE
+AMOLATAR|KIOGA COUNTY|OPUL CARLO|CLOCK
+AMOLATAR|KIOGA NORTH COUNTY|OCEN GEOFFREY|UPC
+AMOLATAR|KIOGA NORTH COUNTY|OKODO PETER|NRM
+AMURIA|AMURIA COUNTY|ARIONG MOSES|NUP
+AMURIA|AMURIA COUNTY|EDIAU SAMUEL|NRM
+AMURIA|AMURIA COUNTY|EPILU JOSEPH|RADIO
+AMURIA|AMURIA COUNTY|OJAMUGE SAM|CANDLE
+AMURIA|AMURIA COUNTY|OLINGA SAMUEL|FDC
+AMURIA|ORUNGO COUNTY|ANYUK TEDDY OSIRE|NRM
+AMURIA|ORUNGO COUNTY|ESERU FRED|FDC
+AMURIA|ORUNGO COUNTY|ESOGU NELSON|NUP
+AMURIA|ORUNGO COUNTY|ODONGO JEJE ABUBAKHAR|CHAIR
+AMURIA|ORUNGO COUNTY|OPIO STEPHEN|UPC
+BUKWO|KONGASIS COUNTY|KAPYAGON BRIAN|CLOCK
+BUKWO|KONGASIS COUNTY|KIBET WALTER|FDC
+BUKWO|KONGASIS COUNTY|SABILA NELSON|NRM
+BUKWO|KONGASIS COUNTY|SOKUTON FRED TWALLA|CHAIR
+BUKWO|T'OO COUNTY|CHELANGAT SOLOMON ALINGA|CHAIR
+BUKWO|T'OO COUNTY|KITI PETER|NRM
+BUTALEJA|BUNYOLE EAST COUNTY|MUKEKE YOKONIA|FDC
+BUTALEJA|BUNYOLE EAST COUNTY|MUSAMBA MOSES NAGWOMU|NRM
+BUTALEJA|BUNYOLE EAST COUNTY|MUTABAZI FAUSTINE|BOREHOLE
+BUTALEJA|BUNYOLE EAST COUNTY|MUTEGO RONARD HANGUJJA|CANDLE
+BUTALEJA|BUNYOLE EAST COUNTY|MUTEMBULI YUSUF|BALL
+BUTALEJA|BUNYOLE EAST COUNTY|WEGULO MUHAMUDU|NUP
+BUTALEJA|BUNYOLE WEST COUNTY|FUUNA JOEL|CHAIR
+BUTALEJA|BUNYOLE WEST COUNTY|KAITA PETER MUNGHESI|NUP
+BUTALEJA|BUNYOLE WEST COUNTY|MABAALE YASINI|FDC
+BUTALEJA|BUNYOLE WEST COUNTY|MUTIWA GEOFREY ERIC|MEGAPHONE
+BUTALEJA|BUNYOLE WEST COUNTY|WALUSWAKA JAMES|NRM
+IBANDA|IBANDA COUNTY NORTH|GUMA DAVID GUMISIRIZA|NRM
+IBANDA|IBANDA COUNTY NORTH|KYOOMA XAVIER AKAMPURIRA|BALL
+IBANDA|IBANDA COUNTY NORTH|TUMUBWEINE ELIAS|CLOCK
+IBANDA|IBANDA COUNTY SOUTH|MPAIRWE GODWIN|RADIO
+IBANDA|IBANDA COUNTY SOUTH|MUGISHA PAULAS KAREKYEZI|CLOCK
+IBANDA|IBANDA COUNTY SOUTH|NINKUSIIMA JOHN PAUL|NRM
+IBANDA|IBANDA MUNICIPALITY|AGABA PETER|NRM
+IBANDA|IBANDA MUNICIPALITY|BETUNGURA SARAPIO|TELEVISION
+IBANDA|IBANDA MUNICIPALITY|MUGANDA RASHID KIRANGWA|BALL
+IBANDA|IBANDA MUNICIPALITY|MWINE INNOCENT BAKAMUHARA|CLOCK
+ISINGIRO|BUKANGA COUNTY|KANGWAGYE STEPHEN RWAKANUMA|NRM
+ISINGIRO|BUKANGA COUNTY|NSAMBA ISMAIL|NUP
+ISINGIRO|BUKANGA COUNTY|TUMUSIIME HUMBLE ABEL|CLOCK
+ISINGIRO|BUKANGA COUNTY|TURIYO TITO|ANT
+ISINGIRO|ISINGIRO COUNTY NORTH|ANKUNDA BEST ARNOLD|PFF
+ISINGIRO|ISINGIRO COUNTY NORTH|BATEGYEZA BAKER KASIISI|RADIO
+ISINGIRO|ISINGIRO COUNTY NORTH|NTANDA SHALIFF BIN HAKIM|NUP
+ISINGIRO|ISINGIRO COUNTY NORTH|RUTAHWAIRE ANTHONY|ANT
+ISINGIRO|ISINGIRO COUNTY NORTH|RWAMIRAMA BRIGHT KANYONTORE|NRM
+ISINGIRO|ISINGIRO COUNTY NORTH|TWEBAZE KENETH|CLOCK
+ISINGIRO|ISINGIRO COUNTY SOUTH|KANYESIGYE ENOS|PFF
+ISINGIRO|ISINGIRO COUNTY SOUTH|MUGABE GILBERT RWABAMBARI|DP
+ISINGIRO|ISINGIRO COUNTY SOUTH|MUJUNI ASENSIO MAARI|NRM
+ISINGIRO|BUKANGA NORTH COUNTY|BITAKWATINE MARK|RADIO
+ISINGIRO|BUKANGA NORTH COUNTY|BYANYIMA NATHAN|NRM
+ISINGIRO|BUKANGA NORTH COUNTY|KAMURALI JEREMIAH BIRUNGI|DP
+ISINGIRO|BUKANGA NORTH COUNTY|KIHEMBO EMMANUEL|NUP
+ISINGIRO|BUKANGA NORTH COUNTY|MUGUMYA CLARE|CLOCK
+ISINGIRO|BUKANGA NORTH COUNTY|SSAMAKULA ABAS|FDC
+ISINGIRO|BUKANGA NORTH COUNTY|TUMUHIMBISE JULIUS|BALL
+ISINGIRO|ISINGIRO WEST COUNTY|ARINAITWE RAUBEN|NRM
+ISINGIRO|ISINGIRO WEST COUNTY|ATURINZIRE METHODIUS|DP
+ISINGIRO|ISINGIRO WEST COUNTY|BYAMUGISHA EMMANUEL RWABISHARI|CHAIR
+ISINGIRO|ISINGIRO WEST COUNTY|NIWANDINDA PREMAS|FDC
+ISINGIRO|ISINGIRO WEST COUNTY|TUMWESIGYE ANTHONY|CLOCK
+ISINGIRO|ISINGIRO WEST COUNTY|WITTA NELSON|CANDLE
+KAABONG|DODOTH EAST COUNTY|ADUPA ELISEO|FDC
+KAABONG|DODOTH EAST COUNTY|KOMOL EMMANUEL|POT
+KAABONG|DODOTH EAST COUNTY|LONGOLEMOE MOSES|SAUCEPAN
+KAABONG|DODOTH EAST COUNTY|MERI JINO BORND|CHAIR
+KAABONG|DODOTH EAST COUNTY|NYANGA PASQUALE|DP
+KAABONG|DODOTH EAST COUNTY|PAAK PETER PEX|NRM
+KAABONG|IK COUNTY|LOKOL DANIEL LOTENGAN|POT
+KAABONG|IK COUNTY|LOKWANG HILLARY|NRM
+KAABONG|DODOTH NORTH COUNTY|APEYO DAMION MOE|DP
+KAABONG|DODOTH NORTH COUNTY|KOMOL JOSEPH MIIDI|NRM
+KAABONG|DODOTH NORTH COUNTY|MODO AUGUSTINE|POT
+KALIRO|BULAMOGI COUNTY|BWIIRE SANON NADEEBA|NRM
+KALIRO|BULAMOGI COUNTY|LUBOGO KENNETH|DP
+KALIRO|BULAMOGI COUNTY|MUTEBI BENARD MUGOYA|CHAIR
+KALIRO|BULAMOGI COUNTY|MUYODI GODFREY|NUP
+KALIRO|BULAMOGI NORTH WEST COUNTY|GUME FREDRICK NGOBI|CHAIR
+KALIRO|BULAMOGI NORTH WEST COUNTY|KASAJJA GEORGE PATRICK|NRM
+KIRUHURA|NYABUSHOZI COUNTY|KAAGIZIRWE JOTHAM TAREMWA|CLOCK
+KIRUHURA|NYABUSHOZI COUNTY|KAJWENGYE TWINOMUGISHA WILSON|NRM
+KIRUHURA|KASHONGI COUNTY|ATUHAIRWE ADSON|MEGAPHONE
+KIRUHURA|KASHONGI COUNTY|TUMURAMYE GENENSIO|NRM
+KOBOKO|KOBOKO COUNTY|BANYA EMMANUEL NATAL|NRM
+KOBOKO|KOBOKO NORTH COUNTY|ASIKU ELIAS ELLY|TABLE
+KOBOKO|KOBOKO NORTH COUNTY|AYUME YASSIN ADINAN|NUP
+KOBOKO|KOBOKO NORTH COUNTY|MUSA NOAH|NRM
+KOBOKO|KOBOKO MUNICIPALITY|AYUME CHARLES|NRM
+KOBOKO|KOBOKO MUNICIPALITY|DUUKI BRAN|NUP
+MANAFWA|BUBULO COUNTY WEST|MABONGA ERIC BENARD|BALL
+MANAFWA|BUBULO COUNTY WEST|MATEMBU CHRISS WATAKA|CLOCK
+MANAFWA|BUBULO COUNTY WEST|PONGO ANDREW|EPU
+MANAFWA|BUBULO COUNTY WEST|WALUKU RONNY WATAKA|NRM
+MANAFWA|BUTIRU COUNTY|BWAYO GABRIEL ROGERS|CHAIR
+MANAFWA|BUTIRU COUNTY|MAFUMO KEFA|COFFEE
+MANAFWA|BUTIRU COUNTY|MULONGO ANTHONY|TABLE
+MANAFWA|BUTIRU COUNTY|TELEMI ROGERS|RADIO
+MANAFWA|BUTIRU COUNTY|WAKOOLI GODFREY MATEMBU|NRM
+MANAFWA|BUTIRU COUNTY|WANIKINA FOSTIN|NUP
+MANAFWA|BUTIRU COUNTY|WASIBI JOSEPH MAGIRA|FDC
+MITYANA|BUSUJJU COUNTY|KATO GODFREY|CLOCK
+MITYANA|BUSUJJU COUNTY|LUBEGA JOHNFESTO|NPP
+MITYANA|BUSUJJU COUNTY|LUKYAMUZI DAVID KALWANGA|NUP
+MITYANA|BUSUJJU COUNTY|LWANYAGA LIVINGSTONE|BALL
+MITYANA|BUSUJJU COUNTY|MUGISHA MOSES|FDC
+MITYANA|BUSUJJU COUNTY|NYANZI VINCENT MAKUMBI|NRM
+MITYANA|MITYANA COUNTY NORTH|KISWA IVAN|NPP
+MITYANA|MITYANA COUNTY NORTH|NSANZE HEZEKIAH MICHAEL|CLOCK
+MITYANA|MITYANA COUNTY NORTH|NSEGUMIRE MUHAMAD KIBEDI|NRM
+MITYANA|MITYANA COUNTY NORTH|TOMUSANGE ISAAC|NUP
+MITYANA|MITYANA COUNTY NORTH|TOMUSANGE WILLIAM|DF
+MITYANA|MITYANA COUNTY SOUTH|BYARUGABA HENRY|CANDLE
+MITYANA|MITYANA COUNTY SOUTH|KINTU FREDDIE GRACE|CLOCK
+MITYANA|MITYANA COUNTY SOUTH|LUMU RICHARD KIZITO|BALL
+MITYANA|MITYANA COUNTY SOUTH|LUTAAYA AMOS|DP
+MITYANA|MITYANA COUNTY SOUTH|MAKUMBI HENRY KAMYA|NRM
+MITYANA|MITYANA COUNTY SOUTH|MANANA GEOFREY|FDC
+MITYANA|MITYANA COUNTY SOUTH|NALWOGA KEVIN|NUP
+MITYANA|MITYANA MUNICIPALITY|KIZZA DAVID MARTIN SSEMAMBO|PFF
+MITYANA|MITYANA MUNICIPALITY|LUTAYA AZIZ|DP
+MITYANA|MITYANA MUNICIPALITY|MAWEJJE GODFREY|CLOCK
+MITYANA|MITYANA MUNICIPALITY|MUGISHA PATRICK NSHIMYE|COFFEE
+MITYANA|MITYANA MUNICIPALITY|NALUBEGA FAUSTA|NPP
+MITYANA|MITYANA MUNICIPALITY|NANZIGE GRACE|BALL
+MITYANA|MITYANA MUNICIPALITY|NDYANABO ESTHER|NRM
+MITYANA|MITYANA MUNICIPALITY|SEKIKUBO JACKSON KATURA|BOREHOLE
+MITYANA|MITYANA MUNICIPALITY|ZAAKE FRANCIS|NUP
+NAKASEKE|NAKASEKE SOUTH COUNTY|BASAJJASSUBI NSEREKO CHARLES KAWUMA|NRM
+NAKASEKE|NAKASEKE SOUTH COUNTY|KAKOOZA RICHARD|CLOCK
+NAKASEKE|NAKASEKE SOUTH COUNTY|LUTTAMAGUZI SEMAKULA PAULSON KASANA|NUP
+NAKASEKE|NAKASEKE SOUTH COUNTY|MUKIIBI STEPHEN|FDC
+NAKASEKE|NAKASEKE SOUTH COUNTY|NKALUBO ARTHUR EMMANUEL|BOREHOLE
+NAKASEKE|NAKASEKE NORTH COUNTY|AHEBWA WILBER MANYISA|NRM
+NAKASEKE|NAKASEKE NORTH COUNTY|KAYANJA GEOFREY|NUP
+NAKASEKE|NAKASEKE CENTRAL COUNTY|KABUGU AMON|COFFEE
+NAKASEKE|NAKASEKE CENTRAL COUNTY|KABUYE KYOFA|NRM
+NAKASEKE|NAKASEKE CENTRAL COUNTY|KIYINGI GODFREY|DP
+NAKASEKE|NAKASEKE CENTRAL COUNTY|MAYANJA ALLAN|NUP
+NAKASEKE|NAKASEKE CENTRAL COUNTY|SEMPALA BASHIR ALI|CLOCK
+NAKASEKE|NAKASEKE CENTRAL COUNTY|SSENKAALI ALEX|FDC
+NAKASEKE|NAKASEKE CENTRAL COUNTY|WALAKIRA FREDRICK DDUNGU|DF
+ABIM|LABWOR COUNTY|AYEPA MICHAEL|NRM
+ABIM|LABWOR COUNTY|OCHERO JIMBRICKY NOMAN|BOREHOLE
+ABIM|LABWOR COUNTY|ODONG PAUL|FDC
+ABIM|LABWOR COUNTY|OJOK PATRICK|MEGAPHONE
+ABIM|LABWOR COUNTY|OKELLO FRANCIS BURTON|POT
+ABIM|LABWOR COUNTY|OWINY DANIEL|NUP
+AMURU|KILAK SOUTH COUNTY|CANKARA BENARD|DF
+AMURU|KILAK SOUTH COUNTY|LAKONY MICHAEL|NRM
+AMURU|KILAK SOUTH COUNTY|OLANYA GILBERT|FDC
+AMURU|KILAK NORTH COUNTY|AKERA AGREY KEITH|FDC
+AMURU|KILAK NORTH COUNTY|AKOL ANTHONY|NRM
+AMURU|KILAK NORTH COUNTY|LOUM JACK LAKANA|CHAIR
+AMURU|KILAK NORTH COUNTY|OKOT KENNETH|CLOCK
+AMURU|KILAK NORTH COUNTY|OMONY JULIUS|BOREHOLE
+BUDAKA|BUDAKA COUNTY|BAAYA CHARLES|NUP
+BUDAKA|BUDAKA COUNTY|GOIRE MOSES|NRM
+BUDAKA|BUDAKA COUNTY|KAMBA MICHAEL BHAMUSANGALA|CLOCK
+BUDAKA|BUDAKA COUNTY|KASIBBO JOSHUA OMAYENDE|BALL
+BUDAKA|BUDAKA COUNTY|MUNUNA RAPHEAL|FDC
+BUDAKA|IKI-IKI COUNTY|KAMPANYA ABDU SWAIBU|NRM
+BUDAKA|IKI-IKI COUNTY|KASOLO ROBERT|RADIO
+BUDAKA|IKI-IKI COUNTY|KIGAYE COLLINE|CLOCK
+BUDAKA|IKI-IKI COUNTY|MUBBALA BENON|BALL
+BUDAKA|IKI-IKI COUNTY|MUJOMBA SAM GAGI|CHAIR
+BUDAKA|IKI-IKI COUNTY|NABUCHA DAUSON|NUP
+BUDAKA|IKI-IKI COUNTY|TWA-TWA JEREMIAH MUTWALANTE|HOUSE
+BULIISA|BULIISA COUNTY|ATUGONZA ALLAN|NRM
+BULIISA|BULIISA COUNTY|ATUHURA MAXWELL|CLOCK
+BULIISA|BULIISA COUNTY|BAHEMUKA SAMUEL|BALL
+BULIISA|BULIISA COUNTY|BEDIJO CHARLES|PPP
+BULIISA|BULIISA COUNTY|KAGORO ROBERT MUGUME|CHAIR
+DOKOLO|DOKOLO NORTH COUNTY|ACEN JOSEPHINE ATIA|BOREHOLE
+DOKOLO|DOKOLO NORTH COUNTY|EBYERU GEOFREY|NUP
+DOKOLO|DOKOLO NORTH COUNTY|OGWAL JOSEPH JONES|NRM
+DOKOLO|DOKOLO NORTH COUNTY|OGWAL MOSES GOLI|CHAIR
+DOKOLO|DOKOLO NORTH COUNTY|OJOK FRANCIS|UPC
+DOKOLO|DOKOLO NORTH COUNTY|OKELLO ALFRED JUNIOR|DF
+DOKOLO|DOKOLO SOUTH COUNTY|ENGWAU JULIUS|DP
+DOKOLO|DOKOLO SOUTH COUNTY|OKOT OGONG FELIX|NRM
+DOKOLO|DOKOLO SOUTH COUNTY|OPITO VINCENT|UPC
+NAMUTUMBA|BUSIKI COUNTY|AKAMBA PAUL|NRM
+NAMUTUMBA|BUSIKI COUNTY|BASALIRWA MUSA|NUP
+NAMUTUMBA|BUSIKI COUNTY|ISIKO SAMUEL CHARLES|CHAIR
+NAMUTUMBA|BUSIKI COUNTY|IVAIBI HENRY|RADIO
+NAMUTUMBA|BUSIKI COUNTY|KASALAWO ABDALLAH|FDC
+NAMUTUMBA|BUSIKI COUNTY|KIGENYI JULIUS|CLOCK
+NAMUTUMBA|BUSIKI COUNTY|MUKOSE SALEH|DP
+NAMUTUMBA|BUSIKI COUNTY|WAISWA JOEL AZALWA|BALL
+NAMUTUMBA|BUSIKI COUNTY|WATUKE GEORGE|MEGAPHONE
+NAMUTUMBA|BUSIKI COUNTY|ZAMASHARI ARAJABU|JEEMA
+NAMUTUMBA|BUKONO COUNTY|BAITE PAUL BAJJE|RADIO
+NAMUTUMBA|BUKONO COUNTY|BATUKA JUMA|CHAIR
+NAMUTUMBA|BUKONO COUNTY|BAZIBU ALI MUKAMA|NUP
+NAMUTUMBA|BUKONO COUNTY|KIWANUKA ABDU|EPU
+NAMUTUMBA|BUKONO COUNTY|MAGANDA EMMANUEL KATOKO|NRM
+NAMUTUMBA|BUKONO COUNTY|NAMUGANZA PERSIS PRINCESS|CLOCK
+NAMUTUMBA|BUKONO COUNTY|TIBAILIRA HABERT|FDC
+NAMUTUMBA|BUSIKI NORTH COUNTY|ASUPASA ISIKO WILSON MPONGO|NRM
+NAMUTUMBA|BUSIKI NORTH COUNTY|BALIRAINE EMMANUEL NAKALANGA|CLOCK
+NAMUTUMBA|BUSIKI NORTH COUNTY|BATWAULA JOSIAH|DP
+NAMUTUMBA|BUSIKI NORTH COUNTY|ISABIRYE ELIZEKIEL|NUP
+NAMUTUMBA|BUSIKI NORTH COUNTY|KASIISA FRED|CHAIR
+NAMUTUMBA|BUSIKI NORTH COUNTY|KAYOGERA YONA|TABLE
+NAMUTUMBA|BUSIKI NORTH COUNTY|KIIRYA YUSUF|BALL
+NAMUTUMBA|BUSIKI NORTH COUNTY|MUGABI NOAH|ANT
+NAMUTUMBA|BUSIKI NORTH COUNTY|MUGOYA SEDURAKI|RADIO
+NAMUTUMBA|BUSIKI NORTH COUNTY|MWONDHA BOSCO|POT
+NAMUTUMBA|BUSIKI NORTH COUNTY|WANTE JAMALI LWANGA|FDC
+OYAM|OYAM COUNTY NORTH|AYENA ODONGO KRISPUS CHARLES|BALL
+OYAM|OYAM COUNTY NORTH|ENGOLA OKELLO SAMUEL|TABLE
+OYAM|OYAM COUNTY NORTH|EUNICE OTUKO APIO|UPC
+OYAM|OYAM COUNTY NORTH|KAKA RONALD ROY|CLOCK
+OYAM|OYAM COUNTY NORTH|OKELLO NEWTON FREDDY|FDC
+OYAM|OYAM COUNTY NORTH|OKULLU DAVID|NUP
+OYAM|OYAM COUNTY NORTH|WILLY OMODO OMODO|NRM
+OYAM|OYAM COUNTY SOUTH|AWUKO BENARD|TABLE
+OYAM|OYAM COUNTY SOUTH|OBONG PATRICK|RADIO
+OYAM|OYAM COUNTY SOUTH|OBUKU EKWARO ANTHONY|BOREHOLE
+OYAM|OYAM COUNTY SOUTH|ODONG GODFREY|DF
+OYAM|OYAM COUNTY SOUTH|OGWANG PATRICK OBURA|NRM
+OYAM|OYAM COUNTY SOUTH|OTTO ISHAA AMIZA|NUP
+OYAM|OYAM COUNTY SOUTH|OWILLI GEOFFREY|UPC
+OYAM|OYAM COUNTY SOUTH|QUEEN DOROTHY AMOLO|CLOCK
+MARACHA|MARACHA COUNTY|AGADRIBO EMMANUEL|NUP
+MARACHA|MARACHA COUNTY|AGUTA SAM|CLOCK
+MARACHA|MARACHA COUNTY|OBETA MOSES DRAKUA|CHAIR
+MARACHA|MARACHA COUNTY|OGUZU LEE DENIS|FDC
+MARACHA|MARACHA COUNTY|UHURU NELSON|NRM
+MARACHA|MARACHA EAST COUNTY|ABITI EMMANUEL|DP
+MARACHA|MARACHA EAST COUNTY|ACIDRI JAMES|CANDLE
+MARACHA|MARACHA EAST COUNTY|ADUMA YEERO JUSTUS|BOREHOLE
+MARACHA|MARACHA EAST COUNTY|ASAU SUNDAY|RADIO
+MARACHA|MARACHA EAST COUNTY|AVAGA MORRIS|NUP
+MARACHA|MARACHA EAST COUNTY|MAWA COLLINES JEREMIAH|CLOCK
+MARACHA|MARACHA EAST COUNTY|MAWA JOHN|FDC
+MARACHA|MARACHA EAST COUNTY|TOM ALITI CANDIA|NRM
+BUDUDA|MANJIYA COUNTY|BUSIKU GEORGE|NRM
+BUDUDA|MANJIYA COUNTY|MATANDA HUSSEIN KATO|CLOCK
+BUDUDA|MANJIYA COUNTY|NAMBESHE JOHN BAPTIST|NUP
+BUDUDA|LUTSESHE COUNTY|BIKALA TOPHER MALAKA|COFFEE
+BUDUDA|LUTSESHE COUNTY|MODOI ISAAC|NRM
+BUDUDA|LUTSESHE COUNTY|NABULO RACHEAL MARTHA|MEGAPHONE
+BUDUDA|LUTSESHE COUNTY|WABUTEYA JACOB ISRAEL|CLOCK
+BUDUDA|LUTSESHE COUNTY|WANDYEMBE RICHARD|FDC
+BUDUDA|BUSHIGAI COUNTY|KIGAI MOSES WAMOTO|RADIO
+BUDUDA|BUSHIGAI COUNTY|MABALA MOSES|CLOCK
+BUDUDA|BUSHIGAI COUNTY|MAKUYI CHARLES|NUP
+BUDUDA|BUSHIGAI COUNTY|NAMUKOWA PHILIP|BALL
+BUDUDA|BUSHIGAI COUNTY|WABUSANI STEVEN MAKWA|NRM
+BUDUDA|BUSHIGAI COUNTY|WAMBETE FRED|FDC
+BUDUDA|BUSHIGAI COUNTY|WAMBOKO PETER KITUNO|HOUSE
+BUDUDA|BUSHIGAI COUNTY|WATIRA WILSON|CHAIR
+BUKEDEA|BUKEDEA COUNTY|AKOL ROSE OKULLU|CLOCK
+BUKEDEA|BUKEDEA COUNTY|IKOJO JOHN BOSCO|CHAIR
+BUKEDEA|BUKEDEA COUNTY|ODEKE JOHN MICHEAL|CANDLE
+BUKEDEA|BUKEDEA COUNTY|OKWERE DAVID BEECHAM|NRM
+BUKEDEA|BUKEDEA COUNTY|OPEJO SILAS|TABLE
+BUKEDEA|KACHUMBALA COUNTY|ONGELECH CHARLES|NUP
+BUKEDEA|KACHUMBALA COUNTY|OPOLOT PATRICK ISIAGI|NRM
+LYANTONDE|KABULA COUNTY|ASIIMWE ENOS KINYWAMACHUNDA|NRM
+LYANTONDE|KABULA COUNTY|KABEERA CYPRIAN GASANA|CAR
+LYANTONDE|KABULA COUNTY|MUGENYI SEMANDA|NUP
+AMUDAT|UPE COUNTY|KIPTERIT CHRISTOPHER AKORIKIMOI|CUP
+AMUDAT|UPE COUNTY|KIYONGA FRANCIS ADAMSON|RADIO
+AMUDAT|UPE COUNTY|LOLEM MICAH AKASILE|NRM
+BUIKWE|NJERU MUNICIPALITY|ISMAIL KIMWERO BUMALI|CAR
+BUIKWE|NJERU MUNICIPALITY|KABUYE BADIRU MPOZA|NRM
+BUIKWE|NJERU MUNICIPALITY|KALEMA CEASAR|CLOCK
+BUIKWE|NJERU MUNICIPALITY|LWANGA JIMMY|BALL
+BUIKWE|NJERU MUNICIPALITY|MAGALA ISAAC NELSON|KETTLE
+BUIKWE|NJERU MUNICIPALITY|MUSANJE MOSES|NUP
+BUIKWE|NJERU MUNICIPALITY|MUSOKE PAUL SEBULIME|CUP
+BUIKWE|NJERU MUNICIPALITY|MUYOMBYA RICHARD|FDC
+BUIKWE|NJERU MUNICIPALITY|NJAKA HASSAN|RADIO
+BUIKWE|LUGAZI MUNICIPALITY|KIZZA GODFREY|PFF
+BUIKWE|LUGAZI MUNICIPALITY|MULINDWA ISAAC SSOZI|NRM
+BUIKWE|LUGAZI MUNICIPALITY|MWIMA JAMES ZAKALIYA|FDC
+BUIKWE|LUGAZI MUNICIPALITY|SEKITTO IVAN|BALL
+BUIKWE|LUGAZI MUNICIPALITY|SENTEZA RICHARD|CLOCK
+BUIKWE|LUGAZI MUNICIPALITY|SSERUBULA STEPHEN|NUP
+BUIKWE|BUIKWE COUNTY SOUTH|BAYIGGA MICHAEL PHILIP LULUME|PFF
+BUIKWE|BUIKWE COUNTY SOUTH|KALUUBA ENOCH|NPP
+BUIKWE|BUIKWE COUNTY SOUTH|KANAABI JIMMY|NUP
+BUIKWE|BUIKWE COUNTY SOUTH|MUGERWA KASULE CHRISTINE GLORIA|DP
+BUIKWE|BUIKWE COUNTY SOUTH|MUKASA ANTHONY HARRIS|CLOCK
+BUIKWE|BUIKWE COUNTY SOUTH|MUTEBI DAVID RONNIE|NRM
+BUYENDE|BUDIOPE WEST COUNTY|BABIRYE MILLY BABALANDA|NRM
+BUYENDE|BUDIOPE WEST COUNTY|KOLOBE ANTONY|CLOCK
+BUYENDE|BUDIOPE WEST COUNTY|KYOTO IBRAHIM MULULI|CHAIR
+BUYENDE|BUDIOPE WEST COUNTY|MUSOKE ROBERT|BALL
+BUYENDE|BUDIOPE WEST COUNTY|MUTAGAYA DENNIS|SAUCEPAN
+BUYENDE|BUDIOPE WEST COUNTY|NGOBI PAUL|FDC
+BUYENDE|BUDIOPE WEST COUNTY|WAKABI DOMINIC|NUP
+BUYENDE|BUDIOPE EAST COUNTY|BAGALANA STEPHEN|CAR
+BUYENDE|BUDIOPE EAST COUNTY|MAGOGO MOSES HASSIM|NRM
+BUYENDE|BUDIOPE EAST COUNTY|MULIRIRE DANIEL|CLOCK
+BUYENDE|BUDIOPE EAST COUNTY|NSIIRO RESTY|MEGAPHONE
+BUYENDE|BUDIOPE EAST COUNTY|PEERE RABIN|PFF
+KYEGEGWA|KYAKA NORTH COUNTY|ASABA NSABIMANA PAUL|CHAIR
+KYEGEGWA|KYAKA NORTH COUNTY|KAHEERU VINCENT FREEDOM|NRM
+KYEGEGWA|KYAKA SOUTH COUNTY|KAFUUZI JACKSON KARUGABA|NRM
+KYEGEGWA|KYAKA SOUTH COUNTY|NIMPAMYA DANIEL|CHAIR
+KYEGEGWA|KYAKA SOUTH COUNTY|NUWAMANYA EVAN|CLOCK
+KYEGEGWA|KYAKA SOUTH COUNTY|TUMWESIGYE JULIUS|CAR
+KYEGEGWA|KYAKA CENTRAL COUNTY|BACWA AMOS|FDC
+KYEGEGWA|KYAKA CENTRAL COUNTY|BALINTUMA SHABAN|MEGAPHONE
+KYEGEGWA|KYAKA CENTRAL COUNTY|BIRIHARIIWE ERYEZA|COFFEE
+KYEGEGWA|KYAKA CENTRAL COUNTY|BRIGHT TOM AMOOTI|NRM
+KYEGEGWA|KYAKA CENTRAL COUNTY|MAGOBA JOEL|RADIO
+KYEGEGWA|KYAKA CENTRAL COUNTY|RWAHWIRE PAUL BUSINGE|CLOCK
+LAMWO|LAMWO COUNTY|AABUKA OKULLO JALLON ANTONY|BALL
+LAMWO|LAMWO COUNTY|AKULLU GRACE REGINA|CLOCK
+LAMWO|LAMWO COUNTY|ALOYOTOO AGNES|JEEMA
+LAMWO|LAMWO COUNTY|ANYWAR GEORGE|DP
+LAMWO|LAMWO COUNTY|KANTO JOSEPH OCHEN|NUP
+LAMWO|LAMWO COUNTY|LOKLIT JOHN BOSCO|RADIO
+LAMWO|LAMWO COUNTY|NYEKO JOHNNSON KEZEKIYA|NRM
+LAMWO|LAMWO COUNTY|OKETAYOT THOMAS|CHAIR
+LAMWO|LAMWO COUNTY|OKONGO JOEL|NPP
+LAMWO|PALABEK COUNTY|NYEKO RICHARD|CLOCK
+LAMWO|PALABEK COUNTY|OCAYA ROBERT PRESTWOOD|BALL
+LAMWO|PALABEK COUNTY|OCEN FELIX ANTHONY|CHAIR
+LAMWO|PALABEK COUNTY|ODONGKARA GEOFREY OBALIM|BOREHOLE
+LAMWO|PALABEK COUNTY|ONEK HILARY OBALOKER|NRM
+OTUKE|OTUKE COUNTY|OJOK OKELLO|UPC
+OTUKE|OTUKE COUNTY|OMARA PAUL|NRM
+OTUKE|OTUKE COUNTY|OMARA RICHARD|DF
+OTUKE|OTUKE COUNTY|OPIO TONNY|CLOCK
+OTUKE|OTUKE COUNTY|OTIM MAXWELL|NUP
+OTUKE|OTUKE EAST COUNTY|ACON JULIUS BUA|NRM
+OTUKE|OTUKE EAST COUNTY|AKELLO SILVIA|CHAIR
+OTUKE|OTUKE EAST COUNTY|ENEN OKELLO RICHARD|UPC
+OTUKE|OTUKE EAST COUNTY|OGWAL LAMECK|BALL
+OTUKE|OTUKE EAST COUNTY|OKU-OLENG COLLINS JENESIO|CANDLE
+ZOMBO|OKORO COUNTY|D'UJANGA SIMON GIW|RADIO
+ZOMBO|OKORO COUNTY|OCHAYA VINCENT ORACH|CANDLE
+ZOMBO|OKORO COUNTY|OKUMU GABRIEL|NRM
+ZOMBO|OKORO COUNTY|OMIRAMBE SUNDAY|CLOCK
+ZOMBO|OKORO COUNTY|ONEGA INNOCENT GODFREY|BALL
+ZOMBO|OKORO COUNTY|PACUNEGA WINIFRED|CHAIR
+ZOMBO|ORA COUNTY|BIYIKA LAWRENCE SONGA|CHAIR
+ZOMBO|ORA COUNTY|JAKONYMUNGU COLLINS|PFF
+ZOMBO|ORA COUNTY|KWIYUCWINY GRACE FREEDOM|NRM
+ALEBTONG|MOROTO COUNTY|AMUZA MARTIN|CLOCK
+ALEBTONG|MOROTO COUNTY|BUA LEO|NUP
+ALEBTONG|MOROTO COUNTY|ELEM LEO|UPC
+ALEBTONG|MOROTO COUNTY|OGWAL SAM|POT
+ALEBTONG|MOROTO COUNTY|OKWIR SAMUEL|NRM
+ALEBTONG|MOROTO COUNTY|OLANG PATRICK|DF
+ALEBTONG|AJURI COUNTY|JALAMESO FRED|UPC
+ALEBTONG|AJURI COUNTY|MOLO TOM JASPHER|CLOCK
+ALEBTONG|AJURI COUNTY|OBUA DENIS HAMSON|NRM
+ALEBTONG|AJURI COUNTY|OMARA STEVEN|HOUSE
+ALEBTONG|AJURI COUNTY|ONGOM EMMANUEL OKWEL|FDC
+BULAMBULI|BULAMBULI COUNTY|BIARA EMMANUEL WEPUKHULU|NRM
+BULAMBULI|BULAMBULI COUNTY|BURUNDO MUNGOMA MUSINGO ALEX|CLOCK
+BULAMBULI|BULAMBULI COUNTY|KATENYA ISAAC|BALL
+BULAMBULI|BULAMBULI COUNTY|MAYENDE JOHN|RADIO
+BULAMBULI|BULAMBULI COUNTY|SAMAALI MOSES|FDC
+BULAMBULI|BULAMBULI COUNTY|WAMBOKA JEPHTHER PRINCE|CHAIR
+BULAMBULI|BULAMBULI COUNTY|WEKESA PETER|CANDLE
+BULAMBULI|ELGON COUNTY|KIBOMA MISAKI|BALL
+BULAMBULI|ELGON COUNTY|MASABA EMMANUEL WEKOMBA|FDC
+BULAMBULI|ELGON COUNTY|MASSA MOSES|NRM
+BULAMBULI|ELGON COUNTY|MASUBA ALVIN|SPD
+BULAMBULI|ELGON COUNTY|NAMATAKA SAUDA|SAUCEPAN
+BULAMBULI|ELGON COUNTY|SIBOLO GEOFFREY|CLOCK
+BULAMBULI|ELGON COUNTY|WAMAKUYU IGNATIUS MUDIMI|CHAIR
+BULAMBULI|ELGON NORTH COUNTY|NAFUNA-MULONI IRENE MARGARET|SAUCEPAN
+BULAMBULI|ELGON NORTH COUNTY|NAGIMESI BUYI STEPHEN|CHAIR
+BULAMBULI|ELGON NORTH COUNTY|NAKISISA BALLAK|FDC
+BULAMBULI|ELGON NORTH COUNTY|NANGOLI GERALD|NRM
+BUVUMA|BUVUMA ISLANDS COUNTY|BUNJO JOHN|CLOCK
+BUVUMA|BUVUMA ISLANDS COUNTY|KATAMBA PHILLY|NUP
+BUVUMA|BUVUMA ISLANDS COUNTY|MIGADDE ROBERT NDUGWA|NRM
+BUVUMA|BUVUMA ISLANDS COUNTY|WANDA RONALD|FDC
+GOMBA|GOMBA EAST COUNTY|BBAALE CHARLES|CHAIR
+GOMBA|GOMBA EAST COUNTY|IGA SIMON|DF
+GOMBA|GOMBA EAST COUNTY|KIRUMIRA HENRY HARRIS KALULE|NRM
+GOMBA|GOMBA EAST COUNTY|MUKASA DANIEL|BALL
+GOMBA|GOMBA EAST COUNTY|NDAHIRO ALBERT|CLOCK
+GOMBA|GOMBA EAST COUNTY|SAAZI GODFREY|NUP
+GOMBA|GOMBA EAST COUNTY|WASSWA PETER|COFFEE
+GOMBA|GOMBA WEST COUNTY|KALUMBA JAYNE|CLOCK
+GOMBA|GOMBA WEST COUNTY|KATO GEORGE|PFF
+GOMBA|GOMBA WEST COUNTY|LUKWAGO GONZAGA|NUP
+GOMBA|GOMBA WEST COUNTY|MUKIMBIRI RONALD|RADIO
+GOMBA|GOMBA WEST COUNTY|RWAKOOJO ROBINA GUREME|NRM
+KIRYANDONGO|KIBANDA SOUTH COUNTY|BARUNGI ISAIAH MUTENGA|FDC
+KIRYANDONGO|KIBANDA SOUTH COUNTY|KARUBANGA JACOB ATEENYI|CHAIR
+KIRYANDONGO|KIBANDA SOUTH COUNTY|KIIZA KASIM|DP
+KIRYANDONGO|KIBANDA SOUTH COUNTY|LUTANYWA JACK ODUR|NRM
+KIRYANDONGO|KIBANDA SOUTH COUNTY|WOBWINGANIZA THANKS|NUP
+KIRYANDONGO|KIBANDA NORTH COUNTY|ALINAITWE ROGER|NUP
+KIRYANDONGO|KIBANDA NORTH COUNTY|BIHEMAISO DAVID BAGONZA|DF
+KIRYANDONGO|KIBANDA NORTH COUNTY|LIKAMBO BAHTI TAYLOR|CHAIR
+KIRYANDONGO|KIBANDA NORTH COUNTY|NGOMPEK LINOS|NRM
+KIRYANDONGO|KIBANDA NORTH COUNTY|OCHAN ZECHARIAH|UPC
+KIRYANDONGO|KIBANDA NORTH COUNTY|TABAN IDI AMIN|BALL
+KIRYANDONGO|KIBANDA NORTH COUNTY|WATAKA WILLIAM|FDC
+KYANKWANZI|NTWETWE COUNTY|GOMBYA KAZIRO EMANUEL|RADIO
+KYANKWANZI|NTWETWE COUNTY|KATUSABE ACHILLES IRUMBA|DF
+KYANKWANZI|NTWETWE COUNTY|KIKABI EDWARD|NRM
+KYANKWANZI|NTWETWE COUNTY|MANDE EDWARD|NUP
+KYANKWANZI|NTWETWE COUNTY|SSEBIKAALI YOWEERI|CLOCK
+KYANKWANZI|BUTEMBA COUNTY|BINGI PATRICK NYANZI|NRM
+KYANKWANZI|BUTEMBA COUNTY|BYAMUGISHA JULIUS ARINAITWE|CANDLE
+KYANKWANZI|BUTEMBA COUNTY|IRUMBA ALEX|NUP
+KYANKWANZI|BUTEMBA COUNTY|KAMUSIIME INNOCENT PENTAGON|CLOCK
+KYANKWANZI|BUTEMBA COUNTY|KASIBANTE HERBERT|FDC
+KYANKWANZI|BUTEMBA COUNTY|KILIMANI COLLINS|HOUSE
+KYANKWANZI|BUTEMBA COUNTY|MAWETO JACKSON|CHAIR
+KYANKWANZI|BUTEMBA COUNTY|MPEIRWE MICHAEL KATUNGI|TABLE
+LUUKA|LUUKA NORTH COUNTY|BAGOOLE NGOBI JOHN|NRM
+LUUKA|LUUKA NORTH COUNTY|BALONDEMU DAVID|CLOCK
+LUUKA|LUUKA NORTH COUNTY|KAMAGA DANIEL|FDC
+LUUKA|LUUKA NORTH COUNTY|KYOBE LUKE INYENSIKO|CHAIR
+LUUKA|LUUKA NORTH COUNTY|LUTAAYA ROGERS|NUP
+LUUKA|LUUKA NORTH COUNTY|WAKEBA SILAG|DF
+LUUKA|LUUKA SOUTH COUNTY|BANAKUDHINO KIBIRA DANIEL|TABLE
+LUUKA|LUUKA SOUTH COUNTY|KAPASA PAUL|BALL
+LUUKA|LUUKA SOUTH COUNTY|KAWANGUZI SOWEDI BILALI|FDC
+LUUKA|LUUKA SOUTH COUNTY|KAYANJA LUTAKOME YUNUS|DF
+LUUKA|LUUKA SOUTH COUNTY|KIDHUGUDHU LUCY LANYERO|CHAIR
+LUUKA|LUUKA SOUTH COUNTY|KISA STEPHEN BAKUBALWAYO|NRM
+LUUKA|LUUKA SOUTH COUNTY|KIZZA JOSHUA ITAZZI|NUP
+LUUKA|LUUKA SOUTH COUNTY|NABAKYALA GLORIA|CANDLE
+LUUKA|LUUKA SOUTH COUNTY|NGOBI ALEX|CLOCK
+LUUKA|LUUKA SOUTH COUNTY|TENYWA NOAH|ANT
+NAMAYINGO|BUKOOLI SOUTH COUNTY|ADIDWA ABDU|BALL
+NAMAYINGO|BUKOOLI SOUTH COUNTY|BWIRE DAVID|FDC
+NAMAYINGO|BUKOOLI SOUTH COUNTY|MWASE SALIM|CLOCK
+NAMAYINGO|BUKOOLI SOUTH COUNTY|OUMA JAMES PETER|SAUCEPAN
+NAMAYINGO|BUKOOLI SOUTH COUNTY|SANDE CLEMENT ACHOGA|NRM
+NAMAYINGO|BUKOOLI SOUTH COUNTY|WABWIRE KENNETH|UPC
+NAMAYINGO|BUKOOLI SOUTH COUNTY|WASIGE AKIMU WAMUDANYA|NUP
+NAMAYINGO|BUKOOLI ISLAND COUNTY|BWIRE EMMANUEL|FDC
+NAMAYINGO|BUKOOLI ISLAND COUNTY|FRIDAY ONGOMA LAWRENCE|CUP
+NAMAYINGO|BUKOOLI ISLAND COUNTY|OKEYOH PETER|NRM
+NAMAYINGO|BUKOOLI ISLAND COUNTY|OTIENO ALFRED OPAR|BOAT
+NAMAYINGO|BUKOOLI ISLAND COUNTY|OUMA DICKSON ODUNDO|NUP
+NAMAYINGO|BUKOOLI ISLAND COUNTY|OUMA GEORGE ABOTT|RADIO
+NAMAYINGO|NAMAYINGO SOUTH COUNTY|BARASA MOSES|CLOCK
+NAMAYINGO|NAMAYINGO SOUTH COUNTY|FIIDA ROBERT|NUP
+NAMAYINGO|NAMAYINGO SOUTH COUNTY|MUKOSE HUSSEIN|BOAT
+NAMAYINGO|NAMAYINGO SOUTH COUNTY|OLWENYI ALOYS|JERRYCAN
+NAMAYINGO|NAMAYINGO SOUTH COUNTY|OMOLLO MUSA|FDC
+NAMAYINGO|NAMAYINGO SOUTH COUNTY|OUMA WILLY|SAUCEPAN
+NAMAYINGO|NAMAYINGO SOUTH COUNTY|WANYAMA MICHAEL ODWORI|NRM
+NTOROKO|NTOROKO COUNTY|BAZIRA AMON BWAMBALE|CLOCK
+NTOROKO|NTOROKO COUNTY|RUGUMAYO EDISON|NRM
+SERERE|KASILO COUNTY|AKOL JAMES PETER|SAUCEPAN
+SERERE|KASILO COUNTY|EBIAU PETER CARLOS|DF
+SERERE|KASILO COUNTY|EDONU MOSES|HOUSE
+SERERE|KASILO COUNTY|EMAJU JAMES|FDC
+SERERE|KASILO COUNTY|EMAJU PETER PAUL|NRM
+SERERE|KASILO COUNTY|ENINU EDWARD|DP
+SERERE|KASILO COUNTY|ENYUTU SAM|NUP
+SERERE|KASILO COUNTY|OKUPA ELIJAH|BALL
+SERERE|KASILO COUNTY|OTWONGO BENARD|CLOCK
+SERERE|SERERE COUNTY|ALASO ALICE|ANT
+SERERE|SERERE COUNTY|ARIONG STEVEN|RADIO
+SERERE|SERERE COUNTY|ELOGU JOHN LAWRENCE|DP
+SERERE|SERERE COUNTY|OCHOLA STEPHEN|FDC
+SERERE|SERERE COUNTY|OKWII EMMAH|CHAIR
+SERERE|SERERE COUNTY|OMODING EMMANUEL|NRM
+SERERE|SERERE COUNTY|OTALA JOSEPH|DF
+SERERE|PINGIRE COUNTY|APAKUN ERASMAS|FDC
+SERERE|PINGIRE COUNTY|OJIIT PETER|CLOCK
+SERERE|PINGIRE COUNTY|OLINGA DANIEL|NUP
+SERERE|PINGIRE COUNTY|OPIT JOSEPH OKOJO|CANDLE
+SERERE|PINGIRE COUNTY|OPOLOT FRED|CHAIR
+SERERE|PINGIRE COUNTY|OUCOR PHILIP|NRM
+BUKOMANSIMBI|BUKOMANSIMBI NORTH COUNTY|BAROLE JAMES|COFFEE
+BUKOMANSIMBI|BUKOMANSIMBI NORTH COUNTY|KATEREGGA MOHAMED|JEEMA
+BUKOMANSIMBI|BUKOMANSIMBI NORTH COUNTY|KIBERU JULIUS|BANANA
+BUKOMANSIMBI|BUKOMANSIMBI NORTH COUNTY|KISEKKA SALIM|NRM
+BUKOMANSIMBI|BUKOMANSIMBI NORTH COUNTY|LUBYAYI KISIKI IDDI|CLOCK
+BUKOMANSIMBI|BUKOMANSIMBI NORTH COUNTY|NANDAGIRE CHRISTINE NDIWALANA|NUP
+BUKOMANSIMBI|BUKOMANSIMBI NORTH COUNTY|NSEREKO CHRISTOPHER KAYONGO ENGAGGA|CHAIR
+BUKOMANSIMBI|BUKOMANSIMBI NORTH COUNTY|SEREMBA HAMIDUH|BALL
+BUKOMANSIMBI|BUKOMANSIMBI SOUTH COUNTY|JJINGO RONALD|MEGAPHONE
+BUKOMANSIMBI|BUKOMANSIMBI SOUTH COUNTY|KABUYE FORTUNATE JOSEPH|DF
+BUKOMANSIMBI|BUKOMANSIMBI SOUTH COUNTY|KAGIMU MAURICE KIWANUKA|BALL
+BUKOMANSIMBI|BUKOMANSIMBI SOUTH COUNTY|KAYEMBA GEOFREY SSOLO|NUP
+BUKOMANSIMBI|BUKOMANSIMBI SOUTH COUNTY|KIYINGI DEOGRATIUS GONZAGA DEUSDEDIT|DP
+BUKOMANSIMBI|BUKOMANSIMBI SOUTH COUNTY|MUBIRU ARTHUR|TABLE
+BUKOMANSIMBI|BUKOMANSIMBI SOUTH COUNTY|NAKKAZI GRACE|CHAIR
+BUKOMANSIMBI|BUKOMANSIMBI SOUTH COUNTY|NSUBUGA MIKE|COFFEE
+BUKOMANSIMBI|BUKOMANSIMBI SOUTH COUNTY|SEMAKULA BASHIR|NRM
+BUKOMANSIMBI|BUKOMANSIMBI SOUTH COUNTY|SSEMUDDU GEORGE WILLIAM|CANDLE
+BUKOMANSIMBI|BUKOMANSIMBI SOUTH COUNTY|SSERUNJOGI HASSAN MUKIIBI|CLOCK
+BUTAMBALA|BUTAMBALA COUNTY|BAVEKUNO MAFUMU GODFREY|NRM
+BUTAMBALA|BUTAMBALA COUNTY|KISITU ELIAS KASIM|BALL
+BUTAMBALA|BUTAMBALA COUNTY|KYEYUNE MUHAMMADI|TABLE
+BUTAMBALA|BUTAMBALA COUNTY|MUKIIBI ERIASA SSERUNJOGI|CLOCK
+BUTAMBALA|BUTAMBALA COUNTY|MUWANGA KIVUMBI MUHAMMAD|NUP
+BUTAMBALA|BUTAMBALA COUNTY|SSERWADDA SUMANI|CHAIR
+KALUNGU|KALUNGU COUNTY EAST|KABONGE ASUMAN|DP
+KALUNGU|KALUNGU COUNTY EAST|KATABAAZI FRANCIS KATONGOLE|BOREHOLE
+KALUNGU|KALUNGU COUNTY EAST|KATONGOLE DEOGRATIAS|RADIO
+KALUNGU|KALUNGU COUNTY EAST|KINTU MATHIAS|DF
+KALUNGU|KALUNGU COUNTY EAST|KIRULUUTA YUSUF JUNIOR NKERETTANYI|NUP
+KALUNGU|KALUNGU COUNTY EAST|NANYANZI IRENE|TABLE
+KALUNGU|KALUNGU COUNTY EAST|SSEMPIJJA VICENT FRERRIO BAMULANGAKI|NRM
+KALUNGU|KALUNGU COUNTY WEST|BALIKUDDEMBE JAMES|DP
+KALUNGU|KALUNGU COUNTY WEST|KIGANDA TWAHA|NRM
+KALUNGU|KALUNGU COUNTY WEST|MATOVU MICHAEL BIRIMUYE|DF
+KALUNGU|KALUNGU COUNTY WEST|SSEMAKULA ISMAEL|CLOCK
+KALUNGU|KALUNGU COUNTY WEST|SSEWUNGU JOSEPH GONZAGA|NUP
+SHEEMA|SHEEMA COUNTY NORTH|BANKUNDA JULIUS|PFF
+SHEEMA|SHEEMA COUNTY NORTH|MUHANGUZI JULIUS|TABLE
+SHEEMA|SHEEMA COUNTY NORTH|TUMWESIGYE ELIODA|NRM
+SHEEMA|SHEEMA COUNTY SOUTH|ARINAITWE EMMANUEL|PFF
+SHEEMA|SHEEMA COUNTY SOUTH|KAMUNTU EPHRAIMU|NRM
+SHEEMA|SHEEMA COUNTY SOUTH|MUSHEMEZA ELIJAH DICKENS|BALL
+SHEEMA|SHEEMA COUNTY SOUTH|MWESIGWA TOMSON|RADIO
+SHEEMA|SHEEMA COUNTY SOUTH|NUWANDINDA AGGREY|NUP
+SHEEMA|SHEEMA COUNTY SOUTH|NUWENYESIGA EMMANUEL|CLOCK
+SHEEMA|SHEEMA MUNICIPALITY|IKIRIZA ADRONAH|RADIO
+SHEEMA|SHEEMA MUNICIPALITY|JUMBE KYEYUNE ABDULLAH|FDC
+SHEEMA|SHEEMA MUNICIPALITY|KAIZA MUSITAPHA|NUP
+SHEEMA|SHEEMA MUNICIPALITY|KATESHUMBWA DICKSONS|NRM
+SHEEMA|SHEEMA MUNICIPALITY|MUKASA JOSEPH|CLOCK
+SHEEMA|SHEEMA MUNICIPALITY|PLAN VIRGINIA MUGYENYI|PFF
+KIBUKU|KIBUKU COUNTY|BONYOKO FRED|CANDLE
+KIBUKU|KIBUKU COUNTY|DODWA HASSAN|RADIO
+KIBUKU|KIBUKU COUNTY|IKEBERE ABUDALAH|POT
+KIBUKU|KIBUKU COUNTY|KINOBERE HERBERT TOM|BALL
+KIBUKU|KIBUKU COUNTY|MUDEDERI HAMUSINI|FDC
+KIBUKU|KIBUKU COUNTY|MUJOKE SINAN SHABAN|CHAIR
+KIBUKU|KIBUKU COUNTY|MUKODA HARBERT|CLOCK
+KIBUKU|KIBUKU COUNTY|TAGOYA RICHARD|TABLE
+KIBUKU|KIBUKU COUNTY|TAMWENYA CHARLES|NRM
+KIBUKU|KIBUKU COUNTY|TONGOLA TOM|NUP
+KIBUKU|KABWERI COUNTY|DAKA MATHIAS|POT
+KIBUKU|KABWERI COUNTY|GONAHASA PIYATA EMMANUEL|BALL
+KIBUKU|KABWERI COUNTY|KANYERE MATAYO RONALD|NUP
+KIBUKU|KABWERI COUNTY|KAPIO SIMON|FDC
+KIBUKU|KABWERI COUNTY|MUGOLE MAUKU DAVID STEPHEN|CHAIR
+KIBUKU|KABWERI COUNTY|WAKIDA PATRICK GODFREY|NRM
+KOLE|KOLE SOUTH COUNTY|AMANGOLE BOSCO|ANT
+KOLE|KOLE SOUTH COUNTY|AWANY ANDREW MOSES|CHAIR
+KOLE|KOLE SOUTH COUNTY|OCEN PETER|UPC
+KOLE|KOLE SOUTH COUNTY|OGWANG DENIS|CLOCK
+KOLE|KOLE SOUTH COUNTY|OKOT BONIFACE HENRY|NRM
+KOLE|KOLE SOUTH COUNTY|OMANG EMMANUEL|NUP
+KOLE|KOLE NORTH COUNTY|ALYEK JUDITH|BOREHOLE
+KOLE|KOLE NORTH COUNTY|OKELLO BLICK SAM|UPC
+KOLE|KOLE NORTH COUNTY|OPIO SAMUEL ACUTI|NRM
+KWEEN|KWEEN COUNTY|CHELOGOI .K. JACOB (MOTORS)|CHAIR
+KWEEN|KWEEN COUNTY|CHEMONGES WILLIAM|NRM
+KWEEN|KWEEN COUNTY|CHEPTOEK GABRIEL|CLOCK
+KWEEN|KWEEN COUNTY|CHEROTICH NOAH CALEB|NUP
+KWEEN|KWEEN COUNTY|CHESHARI ERIC NONDIN|FDC
+KWEEN|SOI COUNTY|CHEMUTAI STEPHEN|DP
+KWEEN|SOI COUNTY|CHEROP FAIZO|BALL
+KWEEN|SOI COUNTY|MALINGA ISAAC MAIKUT|NRM
+KWEEN|SOI COUNTY|MONGUSHO PATRICK|CANDLE
+KWEEN|SOI COUNTY|MWANGA PATRICK|FDC
+KWEEN|SOI COUNTY|SATYA PETER|CLOCK
+LWENGO|BUKOTO COUNTY MID-WEST|KAMALI SAULO SEKINDI|CLOCK
+LWENGO|BUKOTO COUNTY MID-WEST|KAYIIRA ISAAC|BALL
+LWENGO|BUKOTO COUNTY MID-WEST|KIYIMBA EMMANUEL|NRM
+LWENGO|BUKOTO COUNTY MID-WEST|NABALAMBA ASMAT|NUP
+LWENGO|BUKOTO COUNTY MID-WEST|SSEJJOBA ISAAC|COFFEE
+LWENGO|BUKOTO COUNTY WEST|KAMUSIIME SMITH|NUP
+LWENGO|BUKOTO COUNTY WEST|KITATTA IBRAHIM ALMALIK|BALL
+LWENGO|BUKOTO COUNTY WEST|SERUWUGE YASIN|FDC
+LWENGO|BUKOTO COUNTY WEST|SSENTAYI MUHAMAD|NRM
+LWENGO|BUKOTO COUNTYSOUTH|KAGABO TWAHA MZEE|BALL
+LWENGO|BUKOTO COUNTYSOUTH|KIZZA HAKIM SAWULA|NUP
+LWENGO|BUKOTO COUNTYSOUTH|MATOVU ROGERS|COFFEE
+LWENGO|BUKOTO COUNTYSOUTH|MUHAIRWE GODFREY MUGUMYA|MEGAPHONE
+LWENGO|BUKOTO COUNTYSOUTH|MUYANJA MBABAALI|NRM
+LWENGO|BUKOTO COUNTYSOUTH|SSENTAMU JULIUS|CLOCK
+MITOOMA|RUHINDA COUNTY|ARINDA EDGAR|CLOCK
+MITOOMA|RUHINDA COUNTY|ATUKUNZIRE ROBERT|CHAIR
+MITOOMA|RUHINDA COUNTY|ATUMANYARUHANGA BENSON|CANDLE
+MITOOMA|RUHINDA COUNTY|OTAFIIRE KAHINDA|NRM
+MITOOMA|RUHINDA COUNTY|TUGUME ASAPH|BOOK
+MITOOMA|RUHINDA NORTH COUNTY|TAYEBWA THOMAS|NRM
+MITOOMA|RUHINDA SOUTH COUNTY|ATUHWEREIRE ARTHUR KAZOORA|NRM
+MITOOMA|RUHINDA SOUTH COUNTY|KAMUKAMA BENARD|CLOCK
+MITOOMA|RUHINDA SOUTH COUNTY|MUGABE DONONZIO KAHONDA|CHAIR
+NAPAK|BOKORA COUNTY|ILUKOL EMMANUEL|BOREHOLE
+NAPAK|BOKORA COUNTY|NGOYA JOHN BOSCO|NRM
+NAPAK|BOKORA EAST COUNTY|ADUPA MOSES|BOREHOLE
+NAPAK|BOKORA EAST COUNTY|LOCAP PETERKHEN|NRM
+NAPAK|BOKORA EAST COUNTY|LOMONYANG JOSEPH|CHAIR
+NGORA|NGORA COUNTY|ABALA DAVID|RADIO
+NGORA|NGORA COUNTY|ACHAYO JULIET LODOU|NRM
+NGORA|NGORA COUNTY|OSUGURU MOHAMED MOSES|NUP
+NGORA|KAPIR COUNTY|ABACHU SIMON|NUP
+NGORA|KAPIR COUNTY|ENGEKU SIMON JULIUS|CHAIR
+NGORA|KAPIR COUNTY|ICHOTO JULIUS|DF
+NGORA|KAPIR COUNTY|ISAMAT ABRAHAM|NRM
+NGORA|KAPIR COUNTY|OCAN BEN|PFF
+NGORA|KAPIR COUNTY|OKURUT DAVID LIVINGSTONE|FDC
+NGORA|KAPIR COUNTY|OLEJA JAMES|CLOCK
+BUHWEJU|BUHWEJU COUNTY|AGABA GRACE BYARUGABA|RADIO
+BUHWEJU|BUHWEJU COUNTY|AHEREZA NOBIS|FDC
+BUHWEJU|BUHWEJU COUNTY|AKANKWASA PHIONA|CLOCK
+BUHWEJU|BUHWEJU COUNTY|MUTEKANGA ZADOCK|NRM
+BUHWEJU|BUHWEJU COUNTY|MWIJUKYE FRANCIS|PFF
+BUHWEJU|BUHWEJU WEST COUNTY|BIRAARO EPHRAIM GANSHANGA|MEGAPHONE
+BUHWEJU|BUHWEJU WEST COUNTY|BRIGHT OSCAR|FDC
+BUHWEJU|BUHWEJU WEST COUNTY|KARIISA JOHNBOSCO KOY|NRM
+BUHWEJU|BUHWEJU WEST COUNTY|TWINOMUGISHA WILSON|BALL
+NWOYA|NWOYA COUNTY|AWANY TONY|NRM
+NWOYA|NWOYA COUNTY|OCITTI EMMANUEL ONYAI|UPC
+NWOYA|NWOYA COUNTY|OKELLO KENEDY|CANDLE
+NWOYA|NWOYA COUNTY|OKELLO OTTI ALFRED|BOOK
+NWOYA|NWOYA COUNTY|OOLA SAMUEL|FDC
+NWOYA|NWOYA COUNTY|OPIYO DENISH GEOFFREY|DP
+NWOYA|NWOYA COUNTY|ORACH EMMANUEL|CLOCK
+NWOYA|NWOYA EAST COUNTY|ADONG LILLY|NRM
+NWOYA|NWOYA EAST COUNTY|AKENA PATRICK CANDANO|BOREHOLE
+NWOYA|NWOYA EAST COUNTY|CANKARA MOSES MWAKA|FDC
+NWOYA|NWOYA EAST COUNTY|OJOK NELSON OYET|CHAIR
+NWOYA|NWOYA EAST COUNTY|OKELLO GEOFFREY CHARLES|DP
+NWOYA|NWOYA EAST COUNTY|RWOTOMIYO BRIAN|PFF
+AGAGO|AGAGO COUNTY|KOMAKECH CHARLES TOO-ODERA|TABLE
+AGAGO|AGAGO COUNTY|LAGEN DAVID|POT
+AGAGO|AGAGO COUNTY|OKIDI WINNIE|NUP
+AGAGO|AGAGO COUNTY|OKWERA VINCENT ABIGWANG|CLOCK
+AGAGO|AGAGO COUNTY|OTTO EDWARD MAKMOT|NRM
+AGAGO|AGAGO NORTH COUNTY|LUGWAR BENSON|POT
+AGAGO|AGAGO NORTH COUNTY|OKIO PETER OLAL|CLOCK
+AGAGO|AGAGO NORTH COUNTY|OKOT JOHN AMOS|NRM
+AGAGO|AGAGO NORTH COUNTY|OMENYA OPOKA GEOFFREY|PFF
+AGAGO|AGAGO NORTH COUNTY|OTTO KENNETH|DF
+AGAGO|AGAGO NORTH COUNTY|WHIRLPOOL SIMON PETER OCHEN|CANDLE
+AGAGO|AGAGO WEST COUNTY|ADONG SOFIA|DF
+AGAGO|AGAGO WEST COUNTY|ANYWAR RICKY RICHARD|NRM
+AGAGO|AGAGO WEST COUNTY|OKWIR BELLY SAM OJARA|UPC
+RUBIRIZI|BUNYARUGURU COUNTY|BATARINGAYA BEN|CANDLE
+RUBIRIZI|BUNYARUGURU COUNTY|CADET BENJAMIN|NRM
+RUBIRIZI|BUNYARUGURU COUNTY|MUGISHA VINCENT|FDC
+RUBIRIZI|BUNYARUGURU COUNTY|MUHUMUZA DEOGRATIUS|BOAT
+RUBIRIZI|BUNYARUGURU COUNTY|MUJUNI BENJAMIN|NUP
+RUBIRIZI|BUNYARUGURU COUNTY|TWINE NOBERT|HOUSE
+RUBIRIZI|KATERERA COUNTY|ATWIJUKIRE BOAZ|CLOCK
+RUBIRIZI|KATERERA COUNTY|KATO MOHAMMED|NRM
+RUBIRIZI|KATERERA COUNTY|MUGANZI BENJAMIN|NUP
+KAGADI|BUYAGA EAST COUNTY|ASINGWIRE BRIAN|NUP
+KAGADI|BUYAGA EAST COUNTY|MUSANA ERIC|RADIO
+KAGADI|BUYAGA EAST COUNTY|TWESIGE STEPHEN|NRM
+KAGADI|BUYAGA WEST COUNTY|NAMARA DENNIS|NRM
+KAGADI|BUYAGA WEST COUNTY|NTEGYEREIZE GARD BENDA|BOREHOLE
+KAGADI|BUYAGA WEST COUNTY|TINKASIIMIRE BARNABAS|CHAIR
+KAKUMIRO|BUGANGAIZI WEST COUNTY|BYAMUKAMA FRED|NRM
+KAKUMIRO|BUGANGAIZI WEST COUNTY|KISEMBO JAMES|RADIO
+KAKUMIRO|BUGANGAIZI EAST COUNTY|BWAMBALE GODWIN|NUP
+KAKUMIRO|BUGANGAIZI EAST COUNTY|KUSIIMA MBABALI GODFREY|CLOCK
+KAKUMIRO|BUGANGAIZI EAST COUNTY|TWINAMASIKO ONESIMUS|NRM
+KAKUMIRO|BUGANGAIZI SOUTH COUNTY|KAKEMBO JULIUS|RADIO
+KAKUMIRO|BUGANGAIZI SOUTH COUNTY|LUBEGA GEORGE WILLY|NRM
+KAKUMIRO|BUGANGAIZI SOUTH COUNTY|MUHIMBO LUBEGA EMMANUEL EDWARD|CLOCK
+KAKUMIRO|BUGANGAIZI SOUTH COUNTY|TUMWESIGYE JOSEPHAT|CHAIR
+OMORO|OMORO COUNTY|OJOK ANDREW OULANYAH|NRM
+OMORO|OMORO COUNTY|OLARA ISAAC|FDC
+OMORO|OMORO COUNTY|OPOTA AKOKO|DP
+OMORO|OMORO COUNTY|ORYEM GODFREY|NUP
+OMORO|TOCHI COUNTY|ABDALA LATIF NASUR|BOREHOLE
+OMORO|TOCHI COUNTY|ODUR ODONGOMAC ONEK|NRM
+OMORO|TOCHI COUNTY|OKOT PETER|DP
+OMORO|TOCHI COUNTY|OLANYA RAMTO SERAPHINE|DF
+OMORO|TOCHI COUNTY|OPOKA WILLY WILSON|CHAIR
+RUBANDA|RUBANDA COUNTY EAST|ATUHEIBWE VICTOR COLLINS|CHAIR
+RUBANDA|RUBANDA COUNTY EAST|AYEBARE JASPER|DF
+RUBANDA|RUBANDA COUNTY EAST|JOGO KENETH BIRYABAREMA|TABLE
+RUBANDA|RUBANDA COUNTY EAST|MUSASIZI HENRY ARIGANYIRA|NRM
+RUBANDA|RUBANDA COUNTY WEST|AKAMPWERA GENESIS|CLOCK
+RUBANDA|RUBANDA COUNTY WEST|KABAASA BALABA BRUCE|NRM
+RUBANDA|RUBANDA COUNTY WEST|KAMUNTU MOSES|TABLE
+RUBANDA|RUBANDA COUNTY WEST|SABIITI AMBROSE|NPP
+BUNYANGABU|BUNYANGABU COUNTY|ASABA BRIAN|CLOCK
+BUNYANGABU|BUNYANGABU COUNTY|BWAMBALE BENON|ANT
+BUNYANGABU|BUNYANGABU COUNTY|KALENZI VICTOR|NRM
+BUNYANGABU|BUNYANGABU COUNTY|KISEMBO JORAM|DF
+BUNYANGABU|BUNYANGABU COUNTY|TWIJUKE RONALD NDUHUKIRE|FDC
+BUNYANGABU|BUNYANGABU COUNTY|WOMUJUNI VINCENT|CANDLE
+BUTEBO|BUTEBO COUNTY|KEDDI STEVEN ERIC|CLOCK
+BUTEBO|BUTEBO COUNTY|LWABYA MATIA WACHIKU|BALL
+BUTEBO|BUTEBO COUNTY|MUDUKOI FRED ODUCHU|NRM
+BUTEBO|BUTEBO COUNTY|MUKOMBA ERIC|NUP
+BUTEBO|BUTEBO COUNTY|NAMONA IBULA|DP
+BUTEBO|BUTEBO COUNTY|OKANYA AURUGAI PHILIP CHARLES|TABLE
+BUTEBO|BUTEBO COUNTY|OMUNET BEMUSTAR|FDC
+BUTEBO|BUTEBO COUNTY|OTIM BRIAN|CHAIR
+KYOTERA|KAKUUTO COUNTY|KAKA LUBEGA ISMAIL UTHUMAN|NRM
+KYOTERA|KAKUUTO COUNTY|LUTAAYA GEOFFREY|NUP
+KYOTERA|KAKUUTO COUNTY|MBABAZI LILLIAN|DP
+KYOTERA|KAKUUTO COUNTY|MUKASA EDWARD|BANANA
+KYOTERA|KYOTERA COUNTY|KALIISA VIOLA KAVIN|DP
+KYOTERA|KYOTERA COUNTY|KYEYUNE HARUNA KASOLO|NRM
+KYOTERA|KYOTERA COUNTY|LUKWAGO JOHNPAUL MPALANYI|NUP
+KYOTERA|KYOTERA COUNTY|MUGULA MOSES|PFF
+KYOTERA|KYOTERA COUNTY|SEKWE GERALD|DF
+NAMISINDWA|NAMISINDWA COUNTY|KITUYI MOSES MASABA|CANDLE
+NAMISINDWA|NAMISINDWA COUNTY|MASIKA APOLLO|RADIO
+NAMISINDWA|NAMISINDWA COUNTY|MATIBO ATHANAS|FDC
+NAMISINDWA|NAMISINDWA COUNTY|NAKHABALA WILBROAD WANDENDE|BALL
+NAMISINDWA|NAMISINDWA COUNTY|NAMONYO ROBERT|NUP
+NAMISINDWA|NAMISINDWA COUNTY|NANZALA METRINE|NRM
+NAMISINDWA|NAMISINDWA COUNTY|WAMANA PETER|MEGAPHONE
+NAMISINDWA|BUBULO EAST COUNTY|MUSILA JOHN|NRM
+NAMISINDWA|BUBULO EAST COUNTY|NDIWA WALUKANO JERALD|CLOCK
+NAMISINDWA|BUBULO EAST COUNTY|SAKWA GEORGE|BALL
+NAMISINDWA|BUBULO EAST COUNTY|SIMIYU SAITI EID|NUP
+NAMISINDWA|BUBULO EAST COUNTY|WAKUMA JAMES|RADIO
+NAMISINDWA|BUBULO EAST COUNTY|WESONGA DANIEL|FDC
+PAKWACH|JONAM COUNTY|ALENYO MARSHALL GODFREY|BOAT
+PAKWACH|JONAM COUNTY|BEROCAN EPIPHANY|NRM
+PAKWACH|JONAM COUNTY|MAKAWIA TRINITY|DP
+RUKIGA|RUKIGA COUNTY|KICONCO KATABAAZI PATRICK|NRM
+RUKIGA|RUKIGA COUNTY|KIVUMBA DAMSON CHRISTMAS|CLOCK
+RUKIGA|RUKIGA COUNTY|NDYOMUGYENYI ROLAND|BALL
+RUKIGA|RUKIGA COUNTY|RUMANZI BENITA|RADIO
+BUGWERI|BUGWERI COUNTY|KASANGO ISMA|FDC
+BUGWERI|BUGWERI COUNTY|KATUNTU ABDU|CHAIR
+BUGWERI|BUGWERI COUNTY|KAZIBA GRACE BUDINYI|NUP
+BUGWERI|BUGWERI COUNTY|MAKAIRE FREDRICK|RADIO
+BUGWERI|BUGWERI COUNTY|NAKUDO SEFATIA|BOOK
+BUGWERI|BUGWERI COUNTY|WANDERA SADALA|NRM
+KAPELEBYONG|KAPELEBYONG COUNTY|AKORIKIN FRANCIS|NRM
+KAPELEBYONG|KAPELEBYONG COUNTY|ALOU CELESTINE|FDC
+KAPELEBYONG|KAPELEBYONG COUNTY|AROCHA JOSEPH|CANDLE
+KAPELEBYONG|KAPELEBYONG COUNTY|ESENU ANTHONY ALDEN|CHAIR
+KAPELEBYONG|KAPELEBYONG COUNTY|OCHEN JULIUS|NUP
+KAPELEBYONG|KAPELEBYONG COUNTY|ONYOIN YONA LAWRANCE|CLOCK
+KAPELEBYONG|KAPELEBYONG COUNTY|OONYU THOMAS AQUINAS|UPC
+KASSANDA|KASSANDA COUNTY NORTH|KAMULEGEYA ISAAC|NRM
+KASSANDA|KASSANDA COUNTY NORTH|MULINDE UMAR|CLOCK
+KASSANDA|KASSANDA COUNTY NORTH|NAKAZIBWE RACHEAL|DF
+KASSANDA|KASSANDA COUNTY NORTH|NSAMBA PATRICK OSHABE|NUP
+KASSANDA|KASSANDA COUNTY NORTH|SSENTONGO JOHN BOSCO|DP
+KASSANDA|KASSANDA COUNTY SOUTH|BISASO ABDUL|NRM
+KASSANDA|KASSANDA COUNTY SOUTH|KABUYE FRANK|NUP
+KASSANDA|KASSANDA COUNTY SOUTH|KIZZA JULIUS|ANT
+KASSANDA|KASSANDA COUNTY SOUTH|MUBIRU ERIA|HOUSE
+KASSANDA|BUKUYA COUNTY|BABIRYE JANE ZANINKA|COFFEE
+KASSANDA|BUKUYA COUNTY|BUKENYA MICHAEL IGA|NRM
+KASSANDA|BUKUYA COUNTY|GALABUZI CHARLES MAYANJA|BALL
+KASSANDA|BUKUYA COUNTY|MUTEBI ROBERT|NUP
+KIKUUBE|BUHAGUZI COUNTY|HALELA JACKSON|HOUSE
+KIKUUBE|BUHAGUZI COUNTY|MUHEIRWE DANIEL MPAMIZO|BALL
+KIKUUBE|BUHAGUZI COUNTY|SENJUBU PETER|NUP
+KIKUUBE|BUHAGUZI COUNTY|TWINOMUJUNI FRANCIS KAZINI|NRM
+KIKUUBE|BUHAGUZI EAST COUNTY|AHURRA JULIUS|BALL
+KIKUUBE|BUHAGUZI EAST COUNTY|ASEERA STEPHEN|NRM
+KIKUUBE|BUHAGUZI EAST COUNTY|BAZAARA HILLARY KATO|NUP
+KIKUUBE|BUHAGUZI EAST COUNTY|BIGIRWA JULIUS JUNJURA|CLOCK
+KIKUUBE|BUHAGUZI EAST COUNTY|BYAKAGABA MICHEAL|HOUSE
+KIKUUBE|BUHAGUZI EAST COUNTY|JUNJURA NELSON|RADIO
+KWANIA|KWANIA COUNTY|AJALO HARRIET HARVY|UPC
+KWANIA|KWANIA COUNTY|AYOO TONNY|CHAIR
+KWANIA|KWANIA COUNTY|ERON TONNY|NRM
+KWANIA|KWANIA COUNTY|OKEK ERICK|BOREHOLE
+KWANIA|KWANIA NORTH COUNTY|AWOR EVALINE ELEM|CLOCK
+KWANIA|KWANIA NORTH COUNTY|ODONGO HALLAN CHARLES|NUP
+KWANIA|KWANIA NORTH COUNTY|OKAE BOB|UPC
+KWANIA|KWANIA NORTH COUNTY|ONGU JAMES|NRM
+NABILATUK|PIAN COUNTY|ABURA GODFREY|DP
+NABILATUK|PIAN COUNTY|ACHIA REMIGIO|NRM
+NABILATUK|PIAN COUNTY|ALAKAS JOSEPH|POT
+NABILATUK|PIAN COUNTY|LOKOL PAUL|BOREHOLE
+NABILATUK|PIAN COUNTY|LOMER JAMES JIMMY|CHAIR
+KALAKI|KALAKI COUNTY|ECHELU HERBERT|RADIO
+KALAKI|KALAKI COUNTY|ECHERU DENNIS EMWONYU|CLOCK
+KALAKI|KALAKI COUNTY|EKEJU EDMOND|CHAIR
+KALAKI|KALAKI COUNTY|ELYAU DAVIDSON|HOUSE
+KALAKI|KALAKI COUNTY|EYADU JULIUS|UPC
+KALAKI|KALAKI COUNTY|OKELLO SAMUEL|CANDLE
+KALAKI|KALAKI COUNTY|ONGALO-OBOTE CLEMENT KENNETH|NRM
+KARENGA|DODOTH WEST COUNTY|BAATOM BEN KORYANG|NRM
+KARENGA|DODOTH WEST COUNTY|LOCHAALE FELIX MARK|POT
+KARENGA|DODOTH WEST COUNTY|LODOU DIDA JULIUS|BOREHOLE
+KARENGA|NAPORE WEST COUNTY|LOKWANG PHILIPHS ILUKOL|NRM
+KARENGA|NAPORE WEST COUNTY|LOLUK FIDELIS LOGWEE|CHAIR
+KAZO|KAZO COUNTY|ATWIJUKIRE DAN KIMOSHO|NRM
+KAZO|KAZO COUNTY|BARUNGI JIM|BALL
+KAZO|KAZO COUNTY|MUHANGUZI MICHEAL|ANT
+KAZO|KAZO COUNTY|TABAMUZIGU BALAM KANTU|CHAIR
+KAZO|KAZO COUNTY|TWINOMUJUNI INNOCENT|CANDLE
+KITAGWENDA|KITAGWENDA COUNTY|AGABA ABBAS MUGISHA|BALL
+KITAGWENDA|KITAGWENDA COUNTY|ARINAITWE AFRICANO|MEGAPHONE
+KITAGWENDA|KITAGWENDA COUNTY|ARINAITWE EMMANUEL|CHAIR
+KITAGWENDA|KITAGWENDA COUNTY|BYAMUKAMA NULU JOSEPH|RADIO
+KITAGWENDA|KITAGWENDA COUNTY|MUGABE ROBERT|NRM
+KITAGWENDA|KITAGWENDA COUNTY|NSAMBA MUBARAK|CLOCK
+KITAGWENDA|KITAGWENDA COUNTY|SPENCER GEORGE WILLIAM|BOAT
+MADI-OKOLLO|UPPER MADI COUNTY|ANDAMA FRED|CHAIR
+MADI-OKOLLO|UPPER MADI COUNTY|BAJOLE EMMANUEL ANDELE|CANDLE
+MADI-OKOLLO|UPPER MADI COUNTY|DRITO MARTIN ANDI|NRM
+MADI-OKOLLO|UPPER MADI COUNTY|ETUKA ISAAC JOAKINO|BOOK
+MADI-OKOLLO|UPPER MADI COUNTY|KANYAGO DOREEN DAPHINE|CLOCK
+MADI-OKOLLO|LOWER MADI COUNTY|AFIDRA RONALD OLEMA|CLOCK
+MADI-OKOLLO|LOWER MADI COUNTY|ARISH AMIN KANU|NUP
+MADI-OKOLLO|LOWER MADI COUNTY|DROMA RASHID|DF
+MADI-OKOLLO|LOWER MADI COUNTY|OGAMA ALLI ISMAIL|NRM
+OBONGI|OBONGI COUNTY|BHOKA GEORGE DIDI|NRM
+OBONGI|OBONGI COUNTY|FUNGAROO KAPS HASSAN|FDC
+RWAMPARA|RWAMPARA COUNTY|AMANYA ANTHONY|CLOCK
+RWAMPARA|RWAMPARA COUNTY|ATUHEREZE ELLY KATSIGAIRE|CHAIR
+RWAMPARA|RWAMPARA COUNTY|KANKUNDA AMOS KIBWIKA|NRM
+RWAMPARA|RWAMPARA COUNTY|NATUMANYA WILLING|PFF
+RWAMPARA|RWAMPARA COUNTY|TUMWINE JORDAN|NUP
+RWAMPARA|RWAMPARA COUNTY|ZABASHAIJA GODSON|BOOK
+RWAMPARA|RWAMPARA EAST COUNTY|AKORERWA JEAN|NUP
+RWAMPARA|RWAMPARA EAST COUNTY|BYAMUKAMA RICHARD|CLOCK
+RWAMPARA|RWAMPARA EAST COUNTY|MUBANGIZI DAVID MPIIRWE|CHAIR
+RWAMPARA|RWAMPARA EAST COUNTY|NGABIRANO CHARLES|COFFEE
+RWAMPARA|RWAMPARA EAST COUNTY|TUSIIME JULIUS KARUHANGA|NRM
+ARUA CITY|AYIVU DIVISION EAST|ANGUYO GODFREY|FDC
+ARUA CITY|AYIVU DIVISION EAST|AYIKOBUA ISAAC|NUP
+ARUA CITY|AYIVU DIVISION EAST|FETA GEOFREY|CHAIR
+ARUA CITY|AYIVU DIVISION EAST|TIYO WILLIAM TAYLOR ODAA|NRM
+ARUA CITY|ARUA CENTRAL DIVISION|ATIMA JACKSON LEE BUTI|NRM
+ARUA CITY|ARUA CENTRAL DIVISION|DEBO RONALD|BALL
+ARUA CITY|ARUA CENTRAL DIVISION|HADAD SALIM|CLOCK
+ARUA CITY|ARUA CENTRAL DIVISION|MUZAID KHEMIS|FDC
+ARUA CITY|ARUA CENTRAL DIVISION|OBINDU JACKSON|NUP
+ARUA CITY|ARUA CENTRAL DIVISION|WADRI KASSIANO EZATI|ANT
+ARUA CITY|AYIVU DIVISION WEST|ADRIKO CONSTANT|CLOCK
+ARUA CITY|AYIVU DIVISION WEST|AFAYOA CHRISTOPHER|DP
+ARUA CITY|AYIVU DIVISION WEST|ATIKU BENARD|MEGAPHONE
+ARUA CITY|AYIVU DIVISION WEST|JIBUA BENARD|NUP
+ARUA CITY|AYIVU DIVISION WEST|LEMATIA JOHN|CHAIR
+ARUA CITY|AYIVU DIVISION WEST|ONZIMA PHIONA|NRM
+GULU CITY|BARDEGE-LAYIBI DIVISION|AKERA ROBINSON|NUP
+GULU CITY|BARDEGE-LAYIBI DIVISION|KOMAKECH LYANDRO|DP
+GULU CITY|BARDEGE-LAYIBI DIVISION|MUGABE ROBERT|ANT
+GULU CITY|BARDEGE-LAYIBI DIVISION|NYEKO MICHAEL OCULA|BALL
+GULU CITY|BARDEGE-LAYIBI DIVISION|OJARA MARTIN MAPENDUZI|NRM
+GULU CITY|LAROO-PECE DIVISION|KITARA TONNY|NRM
+GULU CITY|LAROO-PECE DIVISION|KOMAKECH GEOFFREY|FDC
+GULU CITY|LAROO-PECE DIVISION|LUBANGAKENE CAESAR|MEGAPHONE
+GULU CITY|LAROO-PECE DIVISION|MAO NORBERT|DP
+GULU CITY|LAROO-PECE DIVISION|ODOKONYERO CHARLES|CHAIR
+GULU CITY|LAROO-PECE DIVISION|ODONG EDWARD|BOREHOLE
+GULU CITY|LAROO-PECE DIVISION|OKELLO SAMUEL GEORGE|DF
+GULU CITY|LAROO-PECE DIVISION|ONEN CHARLES|CLOCK
+GULU CITY|LAROO-PECE DIVISION|OPOBO WILFRED|CANDLE
+GULU CITY|LAROO-PECE DIVISION|OPOKA SIMON|UPC
+JINJA CITY|JINJA SOUTH DIVISION EAST|IGEME NATHAN NABETA-SAMSON|CLOCK
+JINJA CITY|JINJA SOUTH DIVISION EAST|KABUGO MUSA|FDC
+JINJA CITY|JINJA SOUTH DIVISION EAST|MBAZIIRA RICHARD BALIKUDDEMBE|NRM
+JINJA CITY|JINJA SOUTH DIVISION EAST|MUGAYA PAUL GERALDSON|BALL
+JINJA CITY|JINJA SOUTH DIVISION EAST|MUWANIKA PETER|PFF
+JINJA CITY|JINJA SOUTH DIVISION EAST|MWIRU PAUL|NUP
+JINJA CITY|JINJA SOUTH DIVISION EAST|NTALE ANDREW|DP
+JINJA CITY|JINJA SOUTH DIVISION WEST|BALYEKU MOSES GRACE|NRM
+JINJA CITY|JINJA SOUTH DIVISION WEST|BATUWA TIMOTHY LUSALA|NUP
+JINJA CITY|JINJA SOUTH DIVISION WEST|ISIKO CLARE IVAN|EPU
+JINJA CITY|JINJA SOUTH DIVISION WEST|KANU DANIEL|CHAIR
+JINJA CITY|JINJA SOUTH DIVISION WEST|KAWANGUZI PAUL|PFF
+JINJA CITY|JINJA SOUTH DIVISION WEST|MBAYO BERNARD|FDC
+JINJA CITY|JINJA SOUTH DIVISION WEST|MUTESA GEOFREY|CLOCK
+JINJA CITY|JINJA SOUTH DIVISION WEST|NAMADDU LAZARUS|BALL
+JINJA CITY|JINJA SOUTH DIVISION WEST|NANGOBI SHAMIM|DF
+JINJA CITY|JINJA NORTH DIVISION|BAKANAMWIKE VICO|BALL
+JINJA CITY|JINJA NORTH DIVISION|BANALYA JOHN NATHAN|HOUSE
+JINJA CITY|JINJA NORTH DIVISION|BIDONDOLE MOHAMMED BISMARCK|BOREHOLE
+JINJA CITY|JINJA NORTH DIVISION|GULUDDENE NASSER TIBENKANA|RADIO
+JINJA CITY|JINJA NORTH DIVISION|GWAIVU MUBASHARU|JEEMA
+JINJA CITY|JINJA NORTH DIVISION|IMAKA ISAAC|CLOCK
+JINJA CITY|JINJA NORTH DIVISION|ISIKO RONALD|CHAIR
+JINJA CITY|JINJA NORTH DIVISION|KABUGO GEOFFREY|PFF
+JINJA CITY|JINJA NORTH DIVISION|KYEMBA MOSES HANNINGTON|DP
+JINJA CITY|JINJA NORTH DIVISION|LUFAFA EDWIN|NRM
+JINJA CITY|JINJA NORTH DIVISION|MUYONJO HUSSEIN|NUP
+JINJA CITY|JINJA NORTH DIVISION|MWESIGWA PETER|UPC
+JINJA CITY|JINJA NORTH DIVISION|NDIKABONA KAKOOZA RONALD|TABLE
+JINJA CITY|JINJA NORTH DIVISION|SEMPEBWA GODFREY|EPU
+JINJA CITY|JINJA NORTH DIVISION|SSEGAWA FRED|CMP
+JINJA CITY|JINJA NORTH DIVISION|ZIRABAMUZALE SWAIB|FDC
+FORT PORTAL CITY|FORT PORTAL CENTRAL DIVISION|AJUNA DAKA JOSEPH|FDC
+FORT PORTAL CITY|FORT PORTAL CENTRAL DIVISION|BAGUMA JOSEPH|NUP
+FORT PORTAL CITY|FORT PORTAL CENTRAL DIVISION|KAIJABWANGO JAMES|CHAIR
+FORT PORTAL CITY|FORT PORTAL CENTRAL DIVISION|MUGISHA RAUBEN KYAMURONDA|CANDLE
+FORT PORTAL CITY|FORT PORTAL CENTRAL DIVISION|MUHENDA RONALD|CLOCK
+FORT PORTAL CITY|FORT PORTAL CENTRAL DIVISION|NAMARA JAMES MWESIGE|MEGAPHONE
+FORT PORTAL CITY|FORT PORTAL CENTRAL DIVISION|RUHUNDA ALEX|NRM
+FORT PORTAL CITY|FORT PORTAL CENTRAL DIVISION|TUSIIME ROBERT|ANT
+FORT PORTAL CITY|FORT PORTAL NORTH DIVISION|KYALIGONZA ROBERT|CLOCK
+FORT PORTAL CITY|FORT PORTAL NORTH DIVISION|MUGISA MARGARET MUHANGA|NRM
+MBARARA CITY|MBARARA NORTH DIVISION|ATUSASIRE AGATHA|PFF
+MBARARA CITY|MBARARA NORTH DIVISION|BAKASHABA CHRISTOPHER|NRM
+MBARARA CITY|MBARARA NORTH DIVISION|BUKENYA MUBARAKA|DF
+MBARARA CITY|MBARARA NORTH DIVISION|KAJUBI BENON|CLOCK
+MBARARA CITY|MBARARA NORTH DIVISION|KARUNGI NASSULU|CHAIR
+MBARARA CITY|MBARARA NORTH DIVISION|KATO ISAAC|RADIO
+MBARARA CITY|MBARARA NORTH DIVISION|MPAKA PETER|NUP
+MBARARA CITY|MBARARA NORTH DIVISION|MWESIGWA ROBERT RUKAARI|CAR
+MBARARA CITY|MBARARA NORTH DIVISION|NUWAGABA MOSES|MEGAPHONE
+MBARARA CITY|MBARARA SOUTH DIVISION|MUGARRA NORMAN VINCENT|ANT
+MBARARA CITY|MBARARA SOUTH DIVISION|MUHUMUZA BRIGHT|NUP
+MBARARA CITY|MBARARA SOUTH DIVISION|MWEBESA MOSES|MEGAPHONE
+MBARARA CITY|MBARARA SOUTH DIVISION|MWINE MPAKA RWAMIRAMA|NRM
+MASAKA CITY|KIMAANYA-KABONERA DIVISION|ASIIMWE ROBERT|NRM
+MASAKA CITY|KIMAANYA-KABONERA DIVISION|BWANIKA ABED|DF
+MASAKA CITY|KIMAANYA-KABONERA DIVISION|KUTEESA PATRICK|NUP
+MASAKA CITY|NYENDO-MUKUNGWE DIVISION|LUBOWA SSEBINA GYAVIIRA|NUP
+MASAKA CITY|NYENDO-MUKUNGWE DIVISION|MPUUGA MATHIAS|DF
+MASAKA CITY|NYENDO-MUKUNGWE DIVISION|NAKITENDE RACHEAL|NRM
+MBALE CITY|INDUSTRIAL DIVISION|MASABA KARIM|RADIO
+MBALE CITY|INDUSTRIAL DIVISION|MUDEDA JAMES KIMAYO SULAI|CHAIR
+MBALE CITY|INDUSTRIAL DIVISION|MUSOBA BENARD|DP
+MBALE CITY|INDUSTRIAL DIVISION|SAIDI BIN SHARIF|PFF
+MBALE CITY|INDUSTRIAL DIVISION|WALIMBWA IDI RASHID|NUP
+MBALE CITY|INDUSTRIAL DIVISION|WANDERA REAGAN|CANDLE
+MBALE CITY|INDUSTRIAL DIVISION|WASUKIRA ANTHONY|CLOCK
+MBALE CITY|INDUSTRIAL DIVISION|WEKESA JOHN WAMBOGO|NRM
+MBALE CITY|INDUSTRIAL DIVISION|WOKURI MARGARET MADANDA|FDC
+MBALE CITY|NORTHERN DIVISION|HUDU HUSSEIN|NRM
+MBALE CITY|NORTHERN DIVISION|MASABA IVAN|NUP
+MBALE CITY|NORTHERN DIVISION|MUKONE MOSES MICHEAL|CANDLE
+MBALE CITY|NORTHERN DIVISION|MUSIGIRE ISIMA|UPM
+MBALE CITY|NORTHERN DIVISION|NANGOLI UMAR|CLOCK
+MBALE CITY|NORTHERN DIVISION|SEBAGABO MOSES|DP
+MBALE CITY|NORTHERN DIVISION|SIZOMU GERSHOM RABBI WAMBEDE|FDC
+MBALE CITY|NORTHERN DIVISION|WAMBEDE SETH KIZANGI MASSA|CHAIR
+MBALE CITY|NORTHERN DIVISION|WANYOTO PAUL MUGOYA|BALL
+TEREGO|TEREGO WEST COUNTY|ABIBO AROWA FRED|FDC
+TEREGO|TEREGO WEST COUNTY|AJUMA VICTOR|DP
+TEREGO|TEREGO WEST COUNTY|AMATI FELEX|NUP
+TEREGO|TEREGO WEST COUNTY|ANDUA MARTIN DRANI|ANT
+TEREGO|TEREGO WEST COUNTY|ANGUNDRU MOSES|TABLE
+TEREGO|TEREGO WEST COUNTY|ANIMU ANGUPALE|CHAIR
+TEREGO|TEREGO WEST COUNTY|DRAMVIKU ERIC SABITI|NRM
+TEREGO|TEREGO WEST COUNTY|DRANDUA JOB CHRISPUS|BOAT
+TEREGO|TEREGO WEST COUNTY|KIZITO ALLEN|CLOCK
+TEREGO|TEREGO WEST COUNTY|MAANDEBO MOSES BAAKOLE|BOOK
+TEREGO|TEREGO EAST COUNTY|BABANGA WILFRED ERIMA|NRM
+TEREGO|TEREGO EAST COUNTY|DRAPARI SUNDAY|DP
+TEREGO|TEREGO EAST COUNTY|JADRIBO VICTOR|MEGAPHONE
+TEREGO|TEREGO EAST COUNTY|OBIGA KANIA|CHAIR
+LIRA CITY|LIRA EAST DIVISION|ALYELA DENIS OMODI|NRM
+LIRA CITY|LIRA EAST DIVISION|APENYO ISAAC|CLOCK
+LIRA CITY|LIRA EAST DIVISION|OCEN JAMES|UPC
+LIRA CITY|LIRA WEST DIVISION|AWANY JIMMY|CHAIR
+LIRA CITY|LIRA WEST DIVISION|OBONG VINCENT SHEDRICK|UPC
+LIRA CITY|LIRA WEST DIVISION|OGWENG EDDY MORRIS|NRM
+LIRA CITY|LIRA WEST DIVISION|OKELLO DAN ALOT|CLOCK
+LIRA CITY|LIRA WEST DIVISION|OKELLO DENIS BLAIR ODONGO|RADIO
+HOIMA CITY|HOIMA EAST DIVISION|BEERAHERU GEOFFREY|ANT
+HOIMA CITY|HOIMA EAST DIVISION|ISINGOMA PATRICK MWESIGWA|CLOCK
+HOIMA CITY|HOIMA EAST DIVISION|TWESIGE DENIS KISEKA|NUP
+HOIMA CITY|HOIMA EAST DIVISION|WAMANI JONAH BYAKUTAAGA|NRM
+HOIMA CITY|HOIMA WEST DIVISION|BAKIRE DONALD BATEGEKA|NRM
+HOIMA CITY|HOIMA WEST DIVISION|BYARUHANGA JOHN BAPTIST|BALL
+HOIMA CITY|HOIMA WEST DIVISION|KASULE ISMAIL|ANT
+HOIMA CITY|HOIMA WEST DIVISION|KATO RONALD|NUP
+HOIMA CITY|HOIMA WEST DIVISION|RUYONGA JOSEPH|CHAIR
+SOROTI CITY|SOROTI EAST COUNTY|ABILU MARTIN ERNEST|CANDLE
+SOROTI CITY|SOROTI EAST COUNTY|AMURIAT PASCAL|DF
+SOROTI CITY|SOROTI EAST COUNTY|ATTAN OKIA MOSES|FDC
+SOROTI CITY|SOROTI EAST COUNTY|ELAJU JAMES HERBERT YOWERI|CLOCK
+SOROTI CITY|SOROTI EAST COUNTY|MUKULA RODNEY AKONGEL|BOREHOLE
+SOROTI CITY|SOROTI EAST COUNTY|OREGO ISAAC|NRM
+SOROTI CITY|SOROTI WEST COUNTY|ANOKU PATRICK|CLOCK
+SOROTI CITY|SOROTI WEST COUNTY|EBWALU JONATHAN|FDC
+SOROTI CITY|SOROTI WEST COUNTY|ECHODU DAVID CALVIN|NRM
+SOROTI CITY|SOROTI WEST COUNTY|ELAU EMMANUEL|NUP
+APAC|APAC|ACHOLA SUSAN ENGOLA|UPC
+APAC|APAC|AWOR BETTY ENGOLA|NRM
+ARUA|ARUA|PAPARU LILLIAN OBIALE|NRM
+BUNDIBUGYO|BUNDIBUGYO|AMANYA ANNE|RADIO
+BUNDIBUGYO|BUNDIBUGYO|BEBONA JOSEPHINE BABUNGI|NRM
+BUNDIBUGYO|BUNDIBUGYO|KABASINGUZI JENNIFER|NUP
+BUNDIBUGYO|BUNDIBUGYO|KAPALAYA DONNA KAMULI|MEGAPHONE
+BUNDIBUGYO|BUNDIBUGYO|MASIKA HARRIET|CLOCK
+BUSHENYI|BUSHENYI|KATUSIIME ANNET MUGISHA|NRM
+BUSHENYI|BUSHENYI|KEMIGISHA VIANAH|CHAIR
+BUSHENYI|BUSHENYI|MUSIIMENTA GWENDOLINN|SAUCEPAN
+BUSHENYI|BUSHENYI|NAMARA CAROLINE|CLOCK
+GULU|GULU|ANYADWE FILDER ONEK|CANDLE
+GULU|GULU|ATIM MOUREEN JONES|UPC
+GULU|GULU|ATIMANGO NANCY|CLOCK
+GULU|GULU|AYOO JANETH PHOEBE OBOL|NRM
+GULU|GULU|LAKER SHARON BALMOYI|CHAIR
+GULU|GULU|LALAM IRENE|NUP
+HOIMA|HOIMA|ASIIMWE SUSAN|CHAIR
+HOIMA|HOIMA|BUSINGE HARRIET|CLOCK
+HOIMA|HOIMA|MULINDWA VENAH|NUP
+HOIMA|HOIMA|WEMBABAZI BEATRICE|NRM
+IGANGA|IGANGA|KAGOYA MARIAM|CLOCK
+IGANGA|IGANGA|KAKEREWE AZIZA|NUP
+IGANGA|IGANGA|KAUMA SAUDA|BALL
+IGANGA|IGANGA|MARIAM SEIF|NRM
+IGANGA|IGANGA|NAMBI RITTA|COSEVO
+IGANGA|IGANGA|NASSANGA JACKLINE OBA|BOOK
+JINJA|JINJA|BYUMA BETTY TUUSE|FDC
+JINJA|JINJA|KATALI LOY|CHAIR
+JINJA|JINJA|MUJOMA REHEMAH NAMUJEHE VAN VREDENDAAL|BOOK
+JINJA|JINJA|NAMBI MIRIA|NUP
+JINJA|JINJA|NAMUKOSE MONIC|BALL
+JINJA|JINJA|NAMULINDA SHARITA|CLOCK
+JINJA|JINJA|SANYU OLIVER PRISCILLA|RADIO
+JINJA|JINJA|TIBYAZE PEACE|NRM
+KABALE|KABALE|ANKUNDA GRACE BWESIGYE|MEGAPHONE
+KABALE|KABALE|ASIIMWE ROSETTEE|BOOK
+KABALE|KABALE|ATWAKIIRE CATHELINE NDAMIRA|HOUSE
+KABALE|KABALE|KYOMUGISHA TRUST|RADIO
+KABALE|KABALE|NINSIIMA IMMACULATE TRACY|BALL
+KABALE|KABALE|NYEMERA IMMACULATE KAGWA|CLOCK
+KABALE|KABALE|ORIGUMISIRIZA ENID ATUHEIRE|NRM
+KABAROLE|KABAROLE|KIRUNGI ANNET PAMELA|NRM
+KALANGALA|KALANGALA|NABAYIGA IDAH|NRM
+KALANGALA|KALANGALA|NAKIMULI HELEN|NUP
+KAMPALA|KAMPALA|KASIRI EVELYN KENT|NEED
+KAMPALA|KAMPALA|MALENDE SHAMIM|NUP
+KAMPALA|KAMPALA|NAKITENDE SALAAMA ADELAIDE|DF
+KAMPALA|KAMPALA|NANA NAMATA ANNETTE MWAFRIKA MBARIKIWA|PFF
+KAMPALA|KAMPALA|NANFUMA SHAMIM|CLOCK
+KAMPALA|KAMPALA|NANTEGE CHRISTINE ZAABU|UPC
+KAMPALA|KAMPALA|NANZIRI AMINAH LUKANGA|NRM
+KAMULI|KAMULI|BABIRYE BRIDGET|NUP
+KAMULI|KAMULI|KADAGA REBECCA ALITWALA|NRM
+KAMULI|KAMULI|KIIZA NUUBU SHANITA|MEGAPHONE
+KAMULI|KAMULI|NAIKOBA PROSSY|CHAIR
+KAMULI|KAMULI|NAKISIGE RITAH|CLOCK
+KAMULI|KAMULI|NANGOBI NOET|BALL
+KAPCHORWA|KAPCHORWA|CHEMUTAI HARRIET|NUP
+KAPCHORWA|KAPCHORWA|CHEMUTAI PHYLLIS|BALL
+KAPCHORWA|KAPCHORWA|CHEPTOEK BETTY KAALI|NRM
+KASESE|KASESE|ASIASA RUTH KATYA|PFF
+KASESE|KASESE|ITUNGU SARAH MASEREKA|NRM
+KASESE|KASESE|KABUGHO FLORENCE|FDC
+KASESE|KASESE|KABUGHO MARY MARYLYN|RADIO
+KASESE|KASESE|KATEMBO FATUMA KAMAMA|NUP
+KASESE|KASESE|NIGHT VICTORIA|BOOK
+KIBAALE|KIBAALE|KISEMBO BASEMERA NOELINE|NRM
+KIBAALE|KIBAALE|KUNIHIRA BERNA KALIISA|NUP
+KIBAALE|KIBAALE|KUNIHIRA PROSCOVIA|PFF
+KIBAALE|KIBAALE|NABADDUKA ANNET|CLOCK
+KIBOGA|KIBOGA|BUKIRWA EVELYN|CLOCK
+KIBOGA|KIBOGA|KAAYA CHRISTINE NAKIMWERO|NUP
+KIBOGA|KIBOGA|MUHOOZA DESIRE|NRM
+KIBOGA|KIBOGA|NAKAKEMBO JAMILAH|BALL
+KIBOGA|KIBOGA|NIYONSABA JACKLINE|BANANA
+KISORO|KISORO|AKIFEZA GRACE NGABIRANO|NRM
+KISORO|KISORO|MAHIRWE IRENE|RADIO
+KISORO|KISORO|MBONYE HELLEN|NUP
+KITGUM|KITGUM|ABER LILLIAN|NRM
+KITGUM|KITGUM|ALANYO ROSELINE OLOBO|UPC
+KITGUM|KITGUM|LAMWAKA MARGARET|POT
+KOTIDO|KOTIDO|ALEPER MARGARET ACHILLA|NRM
+KOTIDO|KOTIDO|NURIA HAFSA TEKO|CHAIR
+KUMI|KUMI|AKOMOLOT GETRUDE OLICHO|CHAIR
+KUMI|KUMI|AMODING MONICAH|NRM
+KUMI|KUMI|APOLOT CHRISTINE|RADIO
+KUMI|KUMI|ATEMO MARY GORRETY|FDC
+KUMI|KUMI|IKIROR KEVIN|BOREHOLE
+KUMI|KUMI|IMUCERI ANNE ROSE|CLOCK
+LIRA|LIRA|ATENG MARGARET. J. OTIM|TABLE
+LIRA|LIRA|AUMA LINDA AGNES|NRM
+LIRA|LIRA|ONGINA FLORENCE ADUPA|UPC
+LUWEERO|LUWEERO|BISASO RAHMA|CLOCK
+LUWEERO|LUWEERO|KIRABO AGNES NANTONGO|NRM
+LUWEERO|LUWEERO|NABUKENYA BRENDA|NUP
+LUWEERO|LUWEERO|NAKIGANDA MARIAM|CHAIR
+LUWEERO|LUWEERO|NAKUYA MOREEN|DF
+MASAKA|MASAKA|BABIRYE MARY KABANDA|DP
+MASAKA|MASAKA|NALULE JOANITA|NRM
+MASAKA|MASAKA|NAMUTAAWE JOAN|NUP
+MASINDI|MASINDI|ASIIMWE FLORENCE AKIIKI|NRM
+MASINDI|MASINDI|ASIIMWE NOTTIE KAREN|FDC
+MASINDI|MASINDI|KASANGAKI LILIAN|RADIO
+MASINDI|MASINDI|KASEMIRE SHAMIM|CLOCK
+MBALE|MBALE|KAKAI JUDITH|NUP
+MBALE|MBALE|KHAUKHA MARTHA|POT
+MBALE|MBALE|LUNYOLO SYLVIA AISHA|CHAIR
+MBALE|MBALE|MUKHAYE MIRIAM|NRM
+MBALE|MBALE|NAMBAFU AZENA|FDC
+MBARARA|MBARARA|AYEBARE MARGARET|CHAIR
+MBARARA|MBARARA|BARUGAHARE JULIA DESIRE|HOUSE
+MBARARA|MBARARA|KYARIKUNDA LOYDAH TWINOMUJUNI|NRM
+MBARARA|MBARARA|MAURISHIA HOPE|CLOCK
+MOROTO|MOROTO|APIO LUCY CHEGEM|CHAIR
+MOROTO|MOROTO|APUUN BONISCA BONIC|CLOCK
+MOROTO|MOROTO|ATYANG STELLA|NRM
+MOROTO|MOROTO|KIYAI HELLEN|FDC
+MOYO|MOYO|CHANDIA BENADETTE KODILI|NRM
+MOYO|MOYO|MORIKU JOYCE KADUCU|POT
+MPIGI|MPIGI|MBABAZI HARRIET|NRM
+MPIGI|MPIGI|MUKISA RACHEAL NAKAVULU|CLOCK
+MPIGI|MPIGI|MURUNGI SHALLON KAWEESI|MEGAPHONE
+MPIGI|MPIGI|NAKASIBANTE AISHA|CHAIR
+MPIGI|MPIGI|NAKAWUKA ROSE MARY|DP
+MPIGI|MPIGI|NAKAWUNDE SARAH TEMULANDA|BALL
+MPIGI|MPIGI|NAKINTU JOANITA LULE|DF
+MPIGI|MPIGI|NAMBOOZE TEDDY|NUP
+MUBENDE|MUBENDE|NAKATUDDE YUDAYAH SSEBAYIGA|ANT
+MUBENDE|MUBENDE|NAKAZIBWE HOPE GRANIA|NRM
+MUBENDE|MUBENDE|NANNYANZI HOPE FERISTER|NUP
+MUBENDE|MUBENDE|TINDIMWEBWA TOPISTA|CLOCK
+MUKONO|MUKONO|AMANIYO DRAVILLE SHEILAH|NUP
+MUKONO|MUKONO|BAKUBI NAKAVUBU MARGARET|NRM
+MUKONO|MUKONO|KUSASIRA PEACE KANYESIGYE MUBIRU|CLOCK
+MUKONO|MUKONO|NAKANJAKO TEDDY|DF
+MUKONO|MUKONO|NALUMANSI VITARINE NANSUBUGA|FDC
+MUKONO|MUKONO|NALUMU MERHAB KIRIGWAJJO|CHAIR
+MUKONO|MUKONO|NAMAZZI HASIFA|DP
+MUKONO|MUKONO|NAMUTOSI NORAH SYLIVIA|RADIO
+MUKONO|MUKONO|NSIBAMBI SALIMA LUNKUSE|JEEMA
+NEBBI|NEBBI|ABEDICHAN MERCY REBECCA|NUP
+NEBBI|NEBBI|NYAMUTORO PHIONA|NRM
+NTUNGAMO|NTUNGAMO|ANKUNDA BRENDAH MUTESI|RADIO
+NTUNGAMO|NTUNGAMO|KYINDYAHAMUTIMA JULIET|CLOCK
+NTUNGAMO|NTUNGAMO|NAMANYA VIOLA|NRM
+NTUNGAMO|NTUNGAMO|NAMARA DEBORAH|FDC
+NTUNGAMO|NTUNGAMO|TWINOMUGISHA WINNIE|PFF
+PALLISA|PALLISA|ABBO JANE|NUP
+PALLISA|PALLISA|ACHOLA CATHERINE|NRM
+PALLISA|PALLISA|KAALA KEVIN OJINGA|BALL
+PALLISA|PALLISA|MAGEZI FORTUNATE FAVOUR NAOMI|FDC
+RAKAI|RAKAI|ASHA LUBYAYI KAYANJA|CLOCK
+RAKAI|RAKAI|NALUBEGA GRACE|NUP
+RAKAI|RAKAI|SUUBI KYINYAMATAMA JULIET .K.|NRM
+RUKUNGIRI|RUKUNGIRI|BAMUKWATSA BETTY|PFF
+RUKUNGIRI|RUKUNGIRI|NABAASA INNOCENT KASHOBERA|BALL
+RUKUNGIRI|RUKUNGIRI|NATUKUNDA MIDIUS|CLOCK
+RUKUNGIRI|RUKUNGIRI|TURYAHIKAYO KEBIRUNGI MARY PAULA|NRM
+RUKUNGIRI|RUKUNGIRI|TUSANYUKE CHRISTINE|FDC
+SOROTI|SOROTI|ADEKE ANNA EBAJU|FDC
+SOROTI|SOROTI|AMIGO LEAH JESCA|NRM
+SOROTI|SOROTI|EGABU ROSE JOAN|CLOCK
+TORORO|TORORO|ACHIENG DAPHINE MARY|NUP
+TORORO|TORORO|ACHIENG SARAH OPENDI|NRM
+TORORO|TORORO|AKOTH ANGELLA NZOKIRE|BALL
+TORORO|TORORO|AMALI MAUREEN SEFULOSE|DF
+TORORO|TORORO|ANDERA ELIZABETH|HOUSE
+TORORO|TORORO|ASIIMWE FAITH|FDC
+TORORO|TORORO|AWERE PHIBBY OTAALA|CLOCK
+TORORO|TORORO|NYAFAMBA BARBRA MARCY|UPC
+ADJUMANI|ADJUMANI|ABABIKU JESCA|NRM
+ADJUMANI|ADJUMANI|RALEO ROSE|CLOCK
+ADJUMANI|ADJUMANI|VUSIYA BANGI LINA PYERA|SAUCEPAN
+BUGIRI|BUGIRI|ALIMA HAMMED|JEEMA
+BUGIRI|BUGIRI|CHEKWEMBOI ANJELLINE|FDC
+BUGIRI|BUGIRI|NABUTANDA ZUBEDA|PFF
+BUGIRI|BUGIRI|NAKADAMA AMINAH|SAUCEPAN
+BUGIRI|BUGIRI|NAMADA MOUREEN JUMA|CLOCK
+BUGIRI|BUGIRI|NAMATENDE EUNICE|NRM
+BUGIRI|BUGIRI|NAMUMBYA REBECCA|NUP
+BUSIA|BUSIA|AKELLO PHANICE MARY|NUP
+BUSIA|BUSIA|ANYANGO JANET HOPE|NRM
+BUSIA|BUSIA|AUMA HELLEN WANDERA|SAUCEPAN
+BUSIA|BUSIA|AUMA SCOVIA JULIET|RADIO
+BUSIA|BUSIA|NABULINDO JANE KWOBA|CHAIR
+BUSIA|BUSIA|NAHAULI SHAMS|MEGAPHONE
+BUSIA|BUSIA|OKWARE DOROTHY|CLOCK
+BUSIA|BUSIA|TAAKA MOREEN|BALL
+KATAKWI|KATAKWI|ALUPO JESSICA ROSE EPEL|NRM
+KATAKWI|KATAKWI|ANUKEN ANGELLA|CLOCK
+NAKASONGOLA|NAKASONGOLA|MAHORO SHARON EMILLY|NUP
+NAKASONGOLA|NAKASONGOLA|NAKAMYA ESTHER|BALL
+NAKASONGOLA|NAKASONGOLA|NAKATE SARAH|CANDLE
+NAKASONGOLA|NAKASONGOLA|NDIRABA EDITOR|MEGAPHONE
+NAKASONGOLA|NAKASONGOLA|ZAWEDDE VICTORIOUS|NRM
+SSEMBABULE|SSEMBABULE|KANKUNDA NINA|NUP
+SSEMBABULE|SSEMBABULE|KYINKUHAIRE ESTHER|TABLE
+SSEMBABULE|SSEMBABULE|MARY BEGUMISA|CLOCK
+SSEMBABULE|SSEMBABULE|NAMBAZIIRA FLORENCE|NRM
+KAMWENGE|KAMWENGE|ATUHEIRWE PATIENCE|NUP
+KAMWENGE|KAMWENGE|AZAIRWE DOROTHY KABARAITSYA|RADIO
+KAMWENGE|KAMWENGE|BAHIREIRA SYLIVIA TUMWEKWASE|NRM
+KAYUNGA|KAYUNGA|BIRUNGI KOBUSINGYE JACKLINE|NRM
+KAYUNGA|KAYUNGA|BUKIRWA TEDDY|CLOCK
+KAYUNGA|KAYUNGA|NABIRYE MARGRET|BOOK
+KAYUNGA|KAYUNGA|NAKADDU BRENDA|FDC
+KAYUNGA|KAYUNGA|NAKAYIZA SHAMIM|CHAIR
+KAYUNGA|KAYUNGA|NAKWEEDE HARRIET|NUP
+KAYUNGA|KAYUNGA|NALUBWAMA AGATHA|BALL
+KAYUNGA|KAYUNGA|NANTABA IDAH ERIOS|CANDLE
+KYENJOJO|KYENJOJO|BAGUMA SPELLANZA MUHENDA|RADIO
+KYENJOJO|KYENJOJO|KEMIGISA ROSE|FDC
+KYENJOJO|KYENJOJO|KUNIHIRA FAITH PHILO|NRM
+KYENJOJO|KYENJOJO|NYAKATO MARGRET|CLOCK
+MAYUGE|MAYUGE|MUKODA JULIE ZABWE|CHAIR
+MAYUGE|MAYUGE|NAKADAMA RUKIA ISANGA|NRM
+MAYUGE|MAYUGE|NAKATO DINAH|FDC
+MAYUGE|MAYUGE|NAKAYIZA RITAH MATHUR|NUP
+MAYUGE|MAYUGE|NAMBOOZE MATELIDA|CANDLE
+MAYUGE|MAYUGE|NANGOBI SUZAN FAIMA|CLOCK
+MAYUGE|MAYUGE|NYAMIDUMA DOROTHY TELOPECHO|TABLE
+PADER|PADER|ACHIENG DOREEN OBITA|BOREHOLE
+PADER|PADER|ACHIRO LUCY OTIM|DF
+PADER|PADER|ACIRO PASKA MENYA|POT
+PADER|PADER|LAMUNU BEATRICE AGENA|CANDLE
+PADER|PADER|LOWILA CD OKETAYOT|NRM
+PADER|PADER|ODONG VICKY NORAH|FDC
+SIRONKO|SIRONKO|GIMONO SCOVIA|CLOCK
+SIRONKO|SIRONKO|MAFABI ASHA NABULO|NRM
+SIRONKO|SIRONKO|MARIAM SHARIFA MARUTI|SAUCEPAN
+SIRONKO|SIRONKO|NAFUNA PHIONA|FDC
+SIRONKO|SIRONKO|WAMALA FLORENCE NAMBOZO|BALL
+WAKISO|WAKISO|KIRABIRA ROSE KOBUSINGE NALONGO|MEGAPHONE
+WAKISO|WAKISO|MPAMULUNGI IRENE|BOAT
+WAKISO|WAKISO|NABATANZI JOAN|PFF
+WAKISO|WAKISO|NAJJEMBA JOREEN|FDC
+WAKISO|WAKISO|NAKUNDA BETH KAYESU|NRM
+WAKISO|WAKISO|NAKYANJA ANNET MAWEJJE|DF
+WAKISO|WAKISO|NALUYIMA BETTY ETHEL|NUP
+WAKISO|WAKISO|NANTALE MARIAM BAGALAALIWO|CMP
+YUMBE|YUMBE|AVAKO MELSA NAIMA GULE|NRM
+YUMBE|YUMBE|FIKIRA YASSIN|CLOCK
+YUMBE|YUMBE|ZULAIKA NASSUR|RADIO
+KABERAMAIDO|KABERAMAIDO|AKELLOI JOYCE|UPC
+KABERAMAIDO|KABERAMAIDO|AMAYO IRYN ANYOBU|NUP
+KABERAMAIDO|KABERAMAIDO|AMONGIN JANE FRANCES OKILI|NRM
+KABERAMAIDO|KABERAMAIDO|ANGWARO GRACE EMURIA OKELLO|BOREHOLE
+KABERAMAIDO|KABERAMAIDO|AWICH JANE|CHAIR
+KANUNGU|KANUNGU|AKANDINDA ZIADA|NUP
+KANUNGU|KANUNGU|BETTY NAMARA MUTABAZI KATABA|NRM
+KANUNGU|KANUNGU|KINSHABA PATIENCE NKUNDA|CLOCK
+KANUNGU|KANUNGU|MAJAMBERE ESTHER MUSOKE|RADIO
+NAKAPIRIPIRIT|NAKAPIRIPIRIT|ANYAKUN ESTHER DAVINIA|NRM
+NAKAPIRIPIRIT|NAKAPIRIPIRIT|LOPUWA LILLY|POT
+NAKAPIRIPIRIT|NAKAPIRIPIRIT|NATE ZIPORAH|FDC
+AMOLATAR|AMOLATAR|AKOME DORCUS AGNES|TABLE
+AMOLATAR|AMOLATAR|ATALA LILLIAN WINNY|CLOCK
+AMOLATAR|AMOLATAR|ATIM AGNES APEA|NRM
+AMOLATAR|AMOLATAR|AUMA JANET|UPC
+AMURIA|AMURIA|ABEJA SARAH SPECIOZA|MEGAPHONE
+AMURIA|AMURIA|ACEN RHODA|BALL
+AMURIA|AMURIA|AGURO FLORENCE|NUP
+AMURIA|AMURIA|ALEO DEBORAH MARY|FDC
+AMURIA|AMURIA|ETILU MARGARET|NRM
+BUKWO|BUKWO|CHEMUTAI EVERLYN|CHAIR
+BUKWO|BUKWO|SABAY MARGARET JEPCHUMBA|CLOCK
+BUKWO|BUKWO|TETE CHELANGAT EVERLINE|NRM
+BUTALEJA|BUTALEJA|HAMBA AGATHA MULOKI|RADIO
+BUTALEJA|BUTALEJA|KIZZA SAUYA|NUP
+BUTALEJA|BUTALEJA|LOGOSE SARAH ANNET|NRM
+BUTALEJA|BUTALEJA|NAWATENE CHRISTINE SANNYU|BOREHOLE
+BUTALEJA|BUTALEJA|NEBANDA FLORENCE ANDIRU|CHAIR
+IBANDA|IBANDA|AGANYIRA WINFRED|CLOCK
+IBANDA|IBANDA|ARITUHA CAROLINE|CANDLE
+IBANDA|IBANDA|KALIISA JOVRINE KYOMUKAMA|NRM
+IBANDA|IBANDA|KENYANGYE AYAMBA PATRICIA|NUP
+ISINGIRO|ISINGIRO|ABAHO MELANIA|CLOCK
+ISINGIRO|ISINGIRO|AYEBAZIBWE JASTINE|CHAIR
+ISINGIRO|ISINGIRO|KYARIMPA RESTY SARAH|NUP
+ISINGIRO|ISINGIRO|MBABAZI SANDRA ALEXIS|DP
+ISINGIRO|ISINGIRO|RUTERAHO LILLIAN|NRM
+KAABONG|KAABONG|ACHIA CATHY|NRM
+KAABONG|KAABONG|AJILONG BETTY|DP
+KAABONG|KAABONG|AKOL FILISTER COMFORT|SAUCEPAN
+KAABONG|KAABONG|ILUK REGINA|NUP
+KAABONG|KAABONG|LOKEL STELLA|RADIO
+KAABONG|KAABONG|MWAVITA ALISA LOPS|FDC
+KAABONG|KAABONG|NAKWANG CHRISTINE TUBO|CHAIR
+KALIRO|KALIRO|BALIBUNDI BABRA|CLOCK
+KALIRO|KALIRO|MUSAGALA CAROLINE|JEEMA
+KALIRO|KALIRO|NABAIGWA EVE|DP
+KALIRO|KALIRO|NAIGAGA HARRIET|BOAT
+KALIRO|KALIRO|NAMUKOBE RUTH|CHAIR
+KALIRO|KALIRO|NAMUKUTA BRENDA|NRM
+KALIRO|KALIRO|NANGOBI DAMALIE|NUP
+KALIRO|KALIRO|NANYANZI SARAH JULIET|FDC
+KALIRO|KALIRO|WAKO MILLY|BALL
+KIRUHURA|KIRUHURA|MUSHABE RUJOKI RUTH|NRM
+KOBOKO|KOBOKO|ACHAN AMULE HELLEN|PFF
+KOBOKO|KOBOKO|LAZY BEATRICE|NUP
+KOBOKO|KOBOKO|ROPANI SAUDA|NRM
+KOBOKO|KOBOKO|TABAN AATE SHARIFAH|CLOCK
+MANAFWA|MANAFWA|MUKIMBA IRENE|CLOCK
+MANAFWA|MANAFWA|MUSIBIKHA ANNET|NRM
+MANAFWA|MANAFWA|MUTONYI IRENE|FDC
+MANAFWA|MANAFWA|MUTONYI ROSE MASAABA|CANDLE
+MANAFWA|MANAFWA|NASAMO ELIZABETH KAKAYI|BALL
+MITYANA|MITYANA|BAGALA JOYCE NTWATWA|BALL
+MITYANA|MITYANA|MUKISA PROSCOVIA|NUP
+MITYANA|MITYANA|NABAKOOBA JUDITH NALULE|NRM
+MITYANA|MITYANA|NALWEYISO CATHERINE TUSUUBIRA|BOREHOLE
+NAKASEKE|NAKASEKE|NAJJUMA SARAH|NRM
+NAKASEKE|NAKASEKE|NAKAWOOYA ESTHER|NUP
+ABIM|ABIM|AAYOO JOYCE MAKAMOE|BOREHOLE
+ABIM|ABIM|OKORI-MOE JANET GRACE AKECH|NRM
+AMURU|AMURU|ACIRO CONCY|NRM
+AMURU|AMURU|AKELLO LUCY|FDC
+AMURU|AMURU|ANGEYO LUCY KIJANGE|BALL
+AMURU|AMURU|ARYEMO FLORENCE|CHAIR
+AMURU|AMURU|LAKER STELLAH|CLOCK
+BUDAKA|BUDAKA|BABULA NOEL KATAIKE|NRM
+BUDAKA|BUDAKA|LOGOSE ANNET|CLOCK
+BUDAKA|BUDAKA|MUSENERO HAJIRAH|RADIO
+BUDAKA|BUDAKA|NABUKWASI DINAH RACHEAL KAMIZA|FDC
+BUDAKA|BUDAKA|NAMUTAMBA STELLA|BOREHOLE
+BUDAKA|BUDAKA|NANKOMA BARBRA|CHAIR
+BUDAKA|BUDAKA|SHOPI BRENDA IZABEL|NUP
+BULIISA|BULIISA|BIGIRWA NORAH NYENDWOHA|NRM
+BULIISA|BULIISA|KUSEMERERWA HARRIET|CHAIR
+BULIISA|BULIISA|LAWINO MARY FIONA|CLOCK
+BULIISA|BULIISA|NYANGOMA HANNIFAH|FDC
+DOKOLO|DOKOLO|ADONGO JANET ROSE ELAU OKELLO|NRM
+DOKOLO|DOKOLO|AGUTI SARAH|UPC
+DOKOLO|DOKOLO|AKULLO GLORIA|DP
+DOKOLO|DOKOLO|ATALA RUTH FRANCES|HOUSE
+DOKOLO|DOKOLO|LALAM GRACE HANNA|FDC
+DOKOLO|DOKOLO|OKWIR ANNA|BALL
+NAMUTUMBA|NAMUTUMBA|MUSUBIKA FALIDA|NUP
+NAMUTUMBA|NAMUTUMBA|NAIGAGA MARIAM|NRM
+NAMUTUMBA|NAMUTUMBA|NAKISITA BETTY MPONGO|CLOCK
+OYAM|OYAM|ALUM SANTA SANDRA OGWANG|UPC
+OYAM|OYAM|ETIT JOSEPHINE|DP
+OYAM|OYAM|NKYA JANE FRANCES ACILO|NRM
+MARACHA|MARACHA|ANGUCIA VIVIAN ALIGA|NUP
+MARACHA|MARACHA|AVAKO JOLLY DEZU|BALL
+MARACHA|MARACHA|DRIWARU JENNIFER|NRM
+MARACHA|MARACHA|MASIA LIZZY LILLIAN|FDC
+BUDUDA|BUDUDA|KAKAI DINAH MUKHOBEH|CANDLE
+BUDUDA|BUDUDA|KHAINZA AGNES SHIUMA|NRM
+BUDUDA|BUDUDA|NABUTUWA KEVINAH|CLOCK
+BUDUDA|BUDUDA|NANDUTU AGNESS|CHAIR
+BUDUDA|BUDUDA|SAMBULA SYLIVIA|SAUCEPAN
+BUDUDA|BUDUDA|WETSETSE ESTHER LOIS|FDC
+BUKEDEA|BUKEDEA|AMONG ANITA ANNET|NRM
+LYANTONDE|LYANTONDE|KATUSHABE DOREEN BIRUNGI|NRM
+LYANTONDE|LYANTONDE|KEMIREMBE PAULINE KYAKA|RADIO
+LYANTONDE|LYANTONDE|KYOGABIRWE JOLLY|CLOCK
+LYANTONDE|LYANTONDE|NAJJAGWE RAHMAH SAAD|CHAIR
+LYANTONDE|LYANTONDE|NALUBEGA HALIMAH ZALWANGO|NUP
+LYANTONDE|LYANTONDE|TUHIRIRWE DEBORAH RWABWOGO|COFFEE
+AMUDAT|AMUDAT|ABOOT FLORENCE KATIKATI|BOREHOLE
+AMUDAT|AMUDAT|CHELAIN BETTY LOUKE|CUP
+AMUDAT|AMUDAT|CHEUTICH RUFINA|NRM
+AMUDAT|AMUDAT|CHICHI EVERLINE|RADIO
+AMUDAT|AMUDAT|NAUWAT ROSEMARY|CHAIR
+BUIKWE|BUIKWE|MUTASINGWA DIANA NANKUNDA|NRM
+BUIKWE|BUIKWE|NABATANZI FARIDAH|NUP
+BUIKWE|BUIKWE|NAMWANGA LUKIYA|FDC
+BUIKWE|BUIKWE|NANKABIRWA HARRIET|CLOCK
+BUIKWE|BUIKWE|NANTANDA MADINAH|CANDLE
+BUYENDE|BUYENDE|ACHOMO ROBINAH KAIMA|CHAIR
+BUYENDE|BUYENDE|BIIBI SHARIFAH|RADIO
+BUYENDE|BUYENDE|NAISANGA STELLA|NUP
+BUYENDE|BUYENDE|NAKATO MARY ANNET|CLOCK
+BUYENDE|BUYENDE|NAMULONDO SARAH|NRM
+BUYENDE|BUYENDE|NGOBI PROSSY|BALL
+KYEGEGWA|KYEGEGWA|KABAHENDA FLAVIA RWABUHORO|RADIO
+KYEGEGWA|KYEGEGWA|KUNIHIRA REHEMA|NUP
+KYEGEGWA|KYEGEGWA|KYOGABIIRWE JACKIE MUGANDA|NRM
+LAMWO|LAMWO|ACORA NANCY ODONGA|NRM
+LAMWO|LAMWO|LANYERO MOLLY|CHAIR
+OTUKE|OTUKE|ABEJA SUSAN JOLLY|NRM
+OTUKE|OTUKE|ABOTE GRACE|UPC
+OTUKE|OTUKE|ADUR NORAH|CHAIR
+OTUKE|OTUKE|AKULLO ROSEMARY|POT
+OTUKE|OTUKE|OGWANG PASKA GRACE|DP
+ZOMBO|ZOMBO|ACAMFUA TOPISTA|CHAIR
+ZOMBO|ZOMBO|ADONG SARAH|DP
+ZOMBO|ZOMBO|AFOYOCHAN ESTHER|NRM
+ZOMBO|ZOMBO|NGAMITA GLADIES|BALL
+ZOMBO|ZOMBO|OYURU SCOLASTIC|NUP
+ALEBTONG|ALEBTONG|ABONGO ORIEKOT ELIZABETH|CANDLE
+ALEBTONG|ALEBTONG|ACHEN CHRISTINE AYO|BALL
+ALEBTONG|ALEBTONG|ADUKU CAROLINE GLORIA|UPC
+ALEBTONG|ALEBTONG|ALIP MARY|CLOCK
+ALEBTONG|ALEBTONG|LAKISA MERCY FAITH|NRM
+BULAMBULI|BULAMBULI|NAMBOZO PATIENCE|CLOCK
+BULAMBULI|BULAMBULI|NANDUTU JACKLINE|FDC
+BULAMBULI|BULAMBULI|WEKOMBA SARAH NAMBOZO|NRM
+BUVUMA|BUVUMA|ACHIENG MOREEN|CLOCK
+BUVUMA|BUVUMA|MUGABI SUSAN|NUP
+BUVUMA|BUVUMA|NAGUJJA JUDITH|NRM
+BUVUMA|BUVUMA|NANDAGIRE RAIRAH|BANANA
+BUVUMA|BUVUMA|NASSUNA OLIVE|FDC
+GOMBA|GOMBA|NAYEBALE SYLIVIA|NRM
+GOMBA|GOMBA|SENTAMU BETTY|NUP
+KIRYANDONGO|KIRYANDONGO|ADOKORACH IRENE|RADIO
+KIRYANDONGO|KIRYANDONGO|AMONY BETTY BENNADINE|TABLE
+KIRYANDONGO|KIRYANDONGO|ATUGONZA LILIAN IRENE|DP
+KIRYANDONGO|KIRYANDONGO|KATUSIIME JOVIA|NRM
+KIRYANDONGO|KIRYANDONGO|MUNOKO BULIMWA BEATRICE|FDC
+KYANKWANZI|KYANKWANZI|AKAMUMPA JESCA MULUMBA|BALL
+KYANKWANZI|KYANKWANZI|COMFORTABLE EVERYNE|NUP
+KYANKWANZI|KYANKWANZI|KIKABAHENDA VASTINE|DP
+KYANKWANZI|KYANKWANZI|NALUNGA RUTH KASIRYE|CHAIR
+KYANKWANZI|KYANKWANZI|NANKABIRWA ANN MARIA|NRM
+KYANKWANZI|KYANKWANZI|SENDAWULA CHRISTINE BUKENYA|CLOCK
+LUUKA|LUUKA|MBAYO ESTHER MBULAKUBUZA|CHAIR
+LUUKA|LUUKA|MWESIGWA MARIAM|FDC
+LUUKA|LUUKA|NABIRYE ANNET|NRM
+LUUKA|LUUKA|NAMWASE OLIVER|NUP
+NAMAYINGO|NAMAYINGO|AKUKU MERCY|FDC
+NAMAYINGO|NAMAYINGO|EGESA SANDRA|CLOCK
+NAMAYINGO|NAMAYINGO|MAKHOHA MARGARET|POT
+NAMAYINGO|NAMAYINGO|MUKISA ROBINA HOPE|NRM
+NTOROKO|NTOROKO|KARUNGI MONICA|CHAIR
+NTOROKO|NTOROKO|KASEMIRE JOWERIA IDIRISA|CLOCK
+NTOROKO|NTOROKO|MUJUNGU JENNIFER K|NRM
+SERERE|SERERE|ABEKU HELLEN ADOA|NRM
+SERERE|SERERE|ABULO AGNES|DF
+SERERE|SERERE|ACOM ESTHER|CHAIR
+SERERE|SERERE|AKITENG DEBORAH|FDC
+SERERE|SERERE|ALUPO MARGARET OEMATUM OPOL|SAUCEPAN
+SERERE|SERERE|APOLOT SUSAN|POT
+SERERE|SERERE|ICULET SANDRA|NUP
+BUKOMANSIMBI|BUKOMANSIMBI|KATUSHABE RUTH|NRM
+BUKOMANSIMBI|BUKOMANSIMBI|MAWANDA VICTORIA ZALWANGO|DP
+BUKOMANSIMBI|BUKOMANSIMBI|NABADA SITENDA|COFFEE
+BUKOMANSIMBI|BUKOMANSIMBI|NAKAWUNGU HALIMAH|CLOCK
+BUKOMANSIMBI|BUKOMANSIMBI|NALUJJA AISHA|HOUSE
+BUKOMANSIMBI|BUKOMANSIMBI|NANYONDO VERONICA|NUP
+BUTAMBALA|BUTAMBALA|MIREMBE LYDIA DAPHINE|CLOCK
+BUTAMBALA|BUTAMBALA|NAKATO NOOR|NRM
+BUTAMBALA|BUTAMBALA|NALULE ASHA AISHA KABANDA|NUP
+KALUNGU|KALUNGU|NAKEEYA HELLEN|NRM
+KALUNGU|KALUNGU|NAMIIRO SHAKIRA ZZINGA|NUP
+KALUNGU|KALUNGU|SEKINDI AISHA|COFFEE
+KALUNGU|KALUNGU|WALIGGO AISHA NULUYATI|DF
+SHEEMA|SHEEMA|ATUHAIRE JACKLET|TABLE
+SHEEMA|SHEEMA|KABAAMI HELLEN|CLOCK
+SHEEMA|SHEEMA|KATUSIIME ADRINE|NRM
+SHEEMA|SHEEMA|NINSIIMA DOREEN|PFF
+KIBUKU|KIBUKU|BYACHI HOPE NDEGEMO|NUP
+KIBUKU|KIBUKU|KATOOKO SYLVIA DAMBA|NRM
+KIBUKU|KIBUKU|NAKANGU SUSAN|BANANA
+KIBUKU|KIBUKU|NAMUNYOLO RUTH|FDC
+KIBUKU|KIBUKU|NAMUYANGU JENIPHER KACHA|BOREHOLE
+KIBUKU|KIBUKU|NAULA MANJERI BOLE|CHAIR
+KIBUKU|KIBUKU|RACHEAL KENO NANGEDDE|CANDLE
+KOLE|KOLE|ACHENG JOY RUTH|CHAIR
+KOLE|KOLE|ACHENG SANDRA|NRM
+KOLE|KOLE|AKECH LOY DOROTHY|BALL
+KOLE|KOLE|ATIM JOY ONGOM|UPC
+KOLE|KOLE|AUMA JANNET|BANANA
+KWEEN|KWEEN|CHEBET SANDRA|BOAT
+KWEEN|KWEEN|CHEKWEL LYDIA|CHAIR
+KWEEN|KWEEN|CHELANGAT SCOVIA|FDC
+KWEEN|KWEEN|CHEMISTO GRACE|BALL
+KWEEN|KWEEN|CHEROP IRENE|SAUCEPAN
+KWEEN|KWEEN|CHEROTWO DIANA|BOOK
+KWEEN|KWEEN|CHERUKUT ROSE EMMA|MEGAPHONE
+KWEEN|KWEEN|SANGE JACKLINE|NRM
+KWEEN|KWEEN|YEKO CHRISTINE CHEROP|CLOCK
+LWENGO|LWENGO|MUWONGE NKONGE SARAH EVELYNE|BALL
+LWENGO|LWENGO|NAKASAGGA ELIZABETH|CLOCK
+LWENGO|LWENGO|NAMUJJU CISSY DIONIZIA|NRM
+LWENGO|LWENGO|NAMUYANJA CHRISTINE|NUP
+MITOOMA|MITOOMA|AGASHA JULIET BASHIISHA|RADIO
+MITOOMA|MITOOMA|KYARAMPE REBECCA|NRM
+MITOOMA|MITOOMA|KYOHAIRWE FAITH|CHAIR
+NAPAK|NAPAK|NAKUT FAITH LORU|NRM
+NAPAK|NAPAK|NAMOE STELLA NYOMERA|CHAIR
+NGORA|NGORA|ABEJA CHRISTINE|DF
+NGORA|NGORA|AMUGE RHODA OYURUKA|NUP
+NGORA|NGORA|APOLOT STELLA ISODO|FDC
+NGORA|NGORA|PEDUN JOSEPHINE|NRM
+BUHWEJU|BUHWEJU|BWIRUKA JANE FRIDA AEKO|FDC
+BUHWEJU|BUHWEJU|NATUKUNDA AMERIA|RADIO
+BUHWEJU|BUHWEJU|NNAMARA ANNET OYES BYAMUKAMA|NRM
+NWOYA|NWOYA|APILI JOY CINDRELLA|UPC
+NWOYA|NWOYA|ATIM JENNIFER OGABA|DF
+NWOYA|NWOYA|JUDITH PEACE ONEN|CHAIR
+NWOYA|NWOYA|LAKER ROSEMARY|DP
+NWOYA|NWOYA|LAKER VICKY TINA|CLOCK
+NWOYA|NWOYA|LANYERO CHRISTINE AWANY|NRM
+AGAGO|AGAGO|AKELLO BEATRICE AKORI|NRM
+AGAGO|AGAGO|AKELLO JUDITH FRANCA|FDC
+AGAGO|AGAGO|ANEK NANCY OBITA|CANDLE
+AGAGO|AGAGO|OMARA MIRIA|POT
+RUBIRIZI|RUBIRIZI|ARINAITWE JENIVA|NRM
+KAGADI|KAGADI|MBABAZI JANEPHER KYOMUHENDO|SAUCEPAN
+KAGADI|KAGADI|NAHWERA PROSSY|CHAIR
+KAGADI|KAGADI|NAZIIWA MARGRET|NRM
+KAKUMIRO|KAKUMIRO|NABBANJA ROBINAH|NRM
+KAKUMIRO|KAKUMIRO|TIBULIHWA HARRIET|CLOCK
+KAKUMIRO|KAKUMIRO|TUSHEMEREIRWE GRACE|CHAIR
+OMORO|OMORO|LAIKA BETTY SHEREED|CHAIR
+OMORO|OMORO|LAKOT PRISCILLINE OTOI|FDC
+OMORO|OMORO|LAMWAKA CATHERINE|NRM
+OMORO|OMORO|NYAPOLO ROSE|DP
+OMORO|OMORO|RAMTO FLAVIA APIO|NUP
+RUBANDA|RUBANDA|AKAMPULIRA PROSSY MBABAZI|NRM
+RUBANDA|RUBANDA|NINSIIMA EVELYNE|CLOCK
+BUNYANGABU|BUNYANGABU|KABAROKOLE SARAH|NRM
+BUNYANGABU|BUNYANGABU|KABASINGUZI GLADYS|NUP
+BUNYANGABU|BUNYANGABU|KAJUMBA EDITH JEMIMAH|CANDLE
+BUTEBO|BUTEBO|AISU ELIZABETH|CHAIR
+BUTEBO|BUTEBO|AMEEDE AGNES|NRM
+BUTEBO|BUTEBO|BYAKIKA ESEZA CATHERINE|CANDLE
+BUTEBO|BUTEBO|KAGOYE HANIFA ASIINA|FDC
+KYOTERA|KYOTERA|NANTONGO FORTUNATE ROSE|NUP
+KYOTERA|KYOTERA|NASSALI RUTH KYAMUNDU|COFFEE
+KYOTERA|KYOTERA|NAYIGA DOROTHY|DP
+KYOTERA|KYOTERA|SCOLA KALIBBALA BESIGYE|NRM
+NAMISINDWA|NAMISINDWA|KHALAYI PEACE|NRM
+NAMISINDWA|NAMISINDWA|KHANAKWA SARAH BWAYO|BALL
+NAMISINDWA|NAMISINDWA|NABALAYO SELA|FDC
+NAMISINDWA|NAMISINDWA|NANDUDU NORAH|CHAIR
+PAKWACH|PAKWACH|AVUR JANE PACUTO|NRM
+PAKWACH|PAKWACH|AWEKONIMUNGU PROSCOVIA|MEGAPHONE
+PAKWACH|PAKWACH|BAKIHT SARAH|BALL
+PAKWACH|PAKWACH|MANDA CHRISTINE OLAR|CLOCK
+RUKIGA|RUKIGA|ALINAITWE SYLVIA TUMUHEIRWE|NRM
+RUKIGA|RUKIGA|KOBUTESI HELLEN KWOROBA|BALL
+RUKIGA|RUKIGA|TUKAMUSHABA JACKLYN JOLLY|NUP
+BUGWERI|BUGWERI|AMINAH MUTESI NALUGODA|NRM
+BUGWERI|BUGWERI|BAALI DAMALIE IRENE|ANT
+BUGWERI|BUGWERI|BYAKATONDA NAIGULU SALIMA|FDC
+BUGWERI|BUGWERI|MAGOOLA RACHEL MIRIEL|CHAIR
+BUGWERI|BUGWERI|NANKWANGA STELLAMARIS|CLOCK
+BUGWERI|BUGWERI|WALUKAMBA MERCY|NUP
+KAPELEBYONG|KAPELEBYONG|ADUPO FLORENCE|BOREHOLE
+KAPELEBYONG|KAPELEBYONG|AMODING HARRIET|CLOCK
+KAPELEBYONG|KAPELEBYONG|AREGO ANGELLA OJAKALA|FDC
+KAPELEBYONG|KAPELEBYONG|ATUTO JACINTA|NRM
+KASSANDA|KASSANDA|ATUKUNDA REBECCA MUBANGIZI|NRM
+KASSANDA|KASSANDA|NABAGABE FLAVIA KALULE|NUP
+KASSANDA|KASSANDA|NABUKENYA DAMALE TWESIGYE|COFFEE
+KASSANDA|KASSANDA|NAKASUMBA DAPHINE|CLOCK
+KIKUUBE|KIKUUBE|KYOMUHENDO JOAN|CLOCK
+KIKUUBE|KIKUUBE|NATUMANYA FLORA|NRM
+KWANIA|KWANIA|APIO SUSAN ATEKILWAK|NRM
+KWANIA|KWANIA|AUMA KENNY|UPC
+KWANIA|KWANIA|ETIT KATE OKAO|FDC
+NABILATUK|NABILATUK|AWAS SYLVIA VICKY|CHAIR
+NABILATUK|NABILATUK|LOKUBAL EMMA|NRM
+KALAKI|KALAKI|ACAN CHRISTINE|CLOCK
+KALAKI|KALAKI|AGAYO PAULINE|UPC
+KALAKI|KALAKI|AJILO MARIA GORRETTI ELOGU|NRM
+KALAKI|KALAKI|AMUO VICKY|NUP
+KALAKI|KALAKI|ASAKO MONICA|BOREHOLE
+KALAKI|KALAKI|ASAO SUSAN|RADIO
+KALAKI|KALAKI|AYOO JENIFFER NALUKWAGO|CANDLE
+KARENGA|KARENGA|AKELLO ROSE LILLY|NRM
+KARENGA|KARENGA|IMEN DOREEN LOE|POT
+KARENGA|KARENGA|NAKWANG EVALINE|DP
+KARENGA|KARENGA|NALEM MARGARET ALEPER|BOREHOLE
+KAZO|KAZO|ATUHAIRE LEAH|RADIO
+KAZO|KAZO|KEMIREMBE RONAH|CHAIR
+KAZO|KAZO|NATUMANYA STELLA MUGISHA|CLOCK
+KAZO|KAZO|NAWE MOLLY KAMUKAMA|NRM
+KITAGWENDA|KITAGWENDA|NINSIIMA GRACE|RADIO
+KITAGWENDA|KITAGWENDA|NYAKATO DOROTHY|NRM
+MADI-OKOLLO|MADI-OKOLLO|ACIRU GLORIA|NUP
+MADI-OKOLLO|MADI-OKOLLO|LETIRU FAIMA|MEGAPHONE
+MADI-OKOLLO|MADI-OKOLLO|OKIA JOANNE ANIKU|NRM
+OBONGI|OBONGI|JOYO HARRIET|CLOCK
+OBONGI|OBONGI|MANENO ZUMURA|NRM
+RWAMPARA|RWAMPARA|ASIIMWE MOLLY MUSIIME|RADIO
+RWAMPARA|RWAMPARA|KANSIIME ANNAH|NRM
+RWAMPARA|RWAMPARA|KICONCO SARAH|NUP
+ARUA CITY|ARUA CITY|EWACHABO SANDRA ROSELYNE|BOREHOLE
+ARUA CITY|ARUA CITY|EYORU NIGHT ASARA|NUP
+ARUA CITY|ARUA CITY|OSORU MOURINE|NRM
+ARUA CITY|ARUA CITY|SAMANYA DAPHINE DRAZA|CANDLE
+ARUA CITY|ARUA CITY|SHEILLAH PRINCESS OBIA|CLOCK
+GULU CITY|GULU CITY|ALIMA JOYCE REENI|NRM
+GULU CITY|GULU CITY|ANENO ALICE PEACE|FDC
+GULU CITY|GULU CITY|AOL BETTY OCAN|PFF
+GULU CITY|GULU CITY|LAGUM CONCY|NUP
+GULU CITY|GULU CITY|LAKER JOLLY GRACE ANDRUVILE OKOT|CHAIR
+GULU CITY|GULU CITY|TOPACHO JUDITH OBINA OKUMU|CLOCK
+JINJA CITY|JINJA CITY|KAGOYA ALICE|RADIO
+JINJA CITY|JINJA CITY|KALEMBE ROSE|ANT
+JINJA CITY|JINJA CITY|KITIBWA JULIET|CHAIR
+JINJA CITY|JINJA CITY|KYEBAKUTIKA MANJERI|CLOCK
+JINJA CITY|JINJA CITY|LUKALU SABRINA|CANDLE
+JINJA CITY|JINJA CITY|LWANSASULA SARAH|NUP
+JINJA CITY|JINJA CITY|MUSIKA ANNET|NRM
+JINJA CITY|JINJA CITY|NABUKWASI PETRA ENID|FDC
+JINJA CITY|JINJA CITY|NAMBI ZAINAH WAKEBA|PFF
+JINJA CITY|JINJA CITY|NASUBO FLORENCE|COFFEE
+FORT PORTAL CITY|FORT PORTAL CITY|ATUHAIRE JACQUELINE|NUP
+FORT PORTAL CITY|FORT PORTAL CITY|KANSIIME MARJORIE ANNET|RADIO
+FORT PORTAL CITY|FORT PORTAL CITY|LINDA IRENE|NRM
+FORT PORTAL CITY|FORT PORTAL CITY|MUKIDI JUDITH|CLOCK
+FORT PORTAL CITY|FORT PORTAL CITY|RWABWOGO SYLVIA|CHAIR
+MBARARA CITY|MBARARA CITY|ABENAITWE EVATH KAFUREEKA|FDC
+MBARARA CITY|MBARARA CITY|ATUKWASA RITA|CLOCK
+MBARARA CITY|MBARARA CITY|AYEBARE PROSSY|PFF
+MBARARA CITY|MBARARA CITY|KIBAAJU CHARITY KAMUHANDA|NRM
+MBARARA CITY|MBARARA CITY|NUMBER ONE IRENE|NUP
+MASAKA CITY|MASAKA CITY|NAKABUYE JULIET KAKANDE|DF
+MASAKA CITY|MASAKA CITY|NALUBOWA ROSE|NUP
+MASAKA CITY|MASAKA CITY|NAMEERE JUSTINE|NRM
+MASAKA CITY|MASAKA CITY|NANYONGA SAUYA|BALL
+MBALE CITY|MBALE CITY|ASENA HALIMA|CLOCK
+MBALE CITY|MBALE CITY|KAKAI HARRIET|FDC
+MBALE CITY|MBALE CITY|MASIBO ROBINAH NADUNGA|CHAIR
+MBALE CITY|MBALE CITY|NAKAYENZE CONNIE GALIWANGO|RADIO
+MBALE CITY|MBALE CITY|NAMONO PEACE|DP
+MBALE CITY|MBALE CITY|NNAKAYENZE AISHA|NUP
+MBALE CITY|MBALE CITY|WANYOTO LYDIA MUTENDE|NRM
+MBALE CITY|MBALE CITY|WASAGALI SARAH KANAABI|BALL
+TEREGO|TEREGO|OBIGAH ROSE|NRM
+TEREGO|TEREGO|ONYIRU SARAH|CAR
+LIRA CITY|LIRA CITY|ACENG JANE RUTH OCERO|NRM
+LIRA CITY|LIRA CITY|ACENG PATRICIA AMNE|CLOCK
+LIRA CITY|LIRA CITY|AMONGI BETTY ONGOM|UPC
+HOIMA CITY|HOIMA CITY|KIIZA BRIDGET|NUP
+HOIMA CITY|HOIMA CITY|NALUMAGA SYLVIA BALYESIIMA|BALL
+HOIMA CITY|HOIMA CITY|NYAKATO ASINANSI|PFF
+HOIMA CITY|HOIMA CITY|PRINCESS DIANAH ROUSE JANE MUGENYI ABWOOLI|NRM
+SOROTI CITY|SOROTI CITY|ACOM ALOBO JOAN|FDC
+SOROTI CITY|SOROTI CITY|AGONYO JULIET|CHAIR
+SOROTI CITY|SOROTI CITY|AMULO EMILLY SHEILA|BALL
+SOROTI CITY|SOROTI CITY|APOLOT PRISCILLA|BOAT
+SOROTI CITY|SOROTI CITY|INACHU SARAH|NRM
+`;
 
-export const PARLIAMENTARY_DATA = RAW_CANDIDATES.map(c => {
-  // Simulate vote shares and metrics for the UI
-  // Base logic: Incumbents/NRM generally higher in rural, NUP in central/urban
-  const sentimentScore = Math.floor(Math.random() * 60) + 30; // 30-90
-  const mentions = Math.floor(Math.random() * 5000) + 100;
-  
-  // Simple heuristic for vote share simulation
-  let baseVote = 15;
-  const party = getPartyFromSymbol(c.party);
-  
-  if (party === 'NRM') baseVote = 45;
-  if (party === 'NUP') baseVote = 40;
-  if (party === 'FDC') baseVote = 25;
-  if (party === 'Independent') baseVote = 20;
-  
-  const projectedVoteShare = Math.min(90, Math.max(1, baseVote + Math.floor(Math.random() * 30 - 15)));
-
-  return {
-    ...c,
-    party, // Normalized party name
-    sentimentScore,
-    mentions,
-    projectedVoteShare
-  };
-});
-
-/**
- * Generates a realistic profile for a constituency based on its name and keywords.
- */
-export const getConstituencyProfile = (constituency: string, candidateName?: string, candidateParty?: string): ConstituencyProfile => {
-  const constituencyLower = constituency.toLowerCase();
-
-  // Determine Region
-  let region = 'Central';
-  if (/mbale|sironko|manafwa|tororo|jinja|bugweri|bulambuli|busoga|elgon|kamuli|iganga|kaliro|luuka|bugiri|busia|namisindwa|soroti|kumi|serere|ngora|kapchorwa/.test(constituencyLower)) region = 'Eastern';
-  else if (/gulu|lira|oyam|apac|arua|west nile|kitgum|agago|amolatar|nebbi|yumbe|moyo|adjumani|omoro|nwoya|koboko|zombo|terego|maracha/.test(constituencyLower)) region = 'Northern';
-  else if (/mbarara|kabale|kasese|hoima|fort portal|masindi|kiruhura|isingiro|ntungamo|rukungiri|kanungu|kisoro|rubanda|rukiga|sheema|bushenyi|mitooma|buhweju|bunyangabu|kabarole|ntoroko|bundibugyo|kagadi|kakumiro|kibaale|buliisa/.test(constituencyLower)) region = 'Western';
-
-  // Stats generation (same as before)
-  const totalPop = 120000 + Math.floor(Math.random() * 50000);
-  const registeredVoters = Math.floor(totalPop * 0.55);
-  
-  return {
-    constituency,
-    region,
-    demographics: {
-      totalPopulation: totalPop.toLocaleString(),
-      registeredVoters: registeredVoters.toLocaleString(),
-      youthPercentage: 70 + Math.floor(Math.random() * 10),
-      urbanizationRate: /Municipality|City|Division/.test(constituency) ? 75 : 15,
-    },
-    socioEconomic: {
-      primaryActivity: region === 'Central' ? 'Trade & Services' : 'Agriculture',
-      povertyIndex: region === 'Northern' ? 'High' : 'Moderate',
-      literacyRate: 70 + Math.floor(Math.random() * 15),
-      accessToElectricity: 40 + Math.floor(Math.random() * 20)
-    },
-    historical: {
-      previousWinner: 'NRM', // Simplified
-      margin2021: '5.2%',
-      voterTurnout: '62%',
-      incumbentStatus: 'Contested'
-    },
-    electionTrend: [],
-    candidateHistory: [],
-    socialMediaPoll: {
-      sentiment: { positive: 45, neutral: 25, negative: 30 },
-      totalMentions: 1500,
-      trendingTopics: ['Roads', 'Health', 'Youth Fund']
-    },
-    osintBackground: {
-        maritalStatus: 'Married',
-        education: 'Bachelors Degree',
-        lifestyle: 'Modest',
-        controversies: [],
-        politicalAnalysis: 'Competitive seat with strong incumbent advantage.'
-    },
-    campaignStrategy: {
-        latestNews: [],
-        keyChallenges: ['Voter Apathy', 'Funding'],
-        winningStrategy: 'Focus on grassroots mobilization.'
+export const PARLIAMENTARY_DATA: ParliamentaryCandidate[] = COMPRESSED_CANDIDATES_DATA.trim().split('\n').map((line, index) => {
+    const parts = line.split('|');
+    if (parts.length < 4) return null;
+    
+    const [district, constituency, name, rawParty] = parts;
+    const party = getPartyFromSymbol(rawParty);
+    
+    // Determine category
+    let category: 'Constituency' | 'Woman MP' | 'Special Interest' = 'Constituency';
+    // Heuristic: If constituency name is just the district name, it's likely a District Woman Representative seat
+    // Also check specific city divisions vs district name overlaps
+    if (constituency.trim().toUpperCase() === district.trim().toUpperCase()) {
+        category = 'Woman MP';
     }
-  };
+
+    // Mock data generation for visualization (since PDF lacks sentiment/vote data)
+    const sentimentScore = Math.floor(Math.random() * 60) + 20; 
+    const projectedVoteShare = Math.floor(Math.random() * 40) + 10;
+    const mentions = Math.floor(Math.random() * 2000) + 100;
+
+    return {
+        id: `p-${index}`,
+        name: name.trim(),
+        constituency: constituency.trim(),
+        party: party,
+        category,
+        sentimentScore,
+        projectedVoteShare,
+        mentions,
+        coordinates: DISTRICT_COORDS[district] || [1.3733, 32.2903] // Default fallback if district not mapped
+    };
+}).filter(Boolean) as ParliamentaryCandidate[];
+
+export const getConstituencyProfile = (constituency: string, candidateName: string, party: string): ConstituencyProfile => {
+    return {
+        constituency,
+        region: 'National',
+        demographics: {
+            totalPopulation: 'Est. 150,000',
+            registeredVoters: 'Est. 85,000',
+            youthPercentage: 78,
+            urbanizationRate: 25
+        },
+        socioEconomic: {
+            primaryActivity: 'Agriculture / Trade',
+            povertyIndex: 'Moderate',
+            literacyRate: 68,
+            accessToElectricity: 45
+        },
+        historical: {
+            previousWinner: 'NRM',
+            margin2021: '+12%',
+            voterTurnout: '65%',
+            incumbentStatus: 'Contested'
+        },
+        electionTrend: [
+            { year: 2011, winningParty: 'NRM', voteShare: 65, turnout: 70, margin: 30, results: [] },
+            { year: 2016, winningParty: 'NRM', voteShare: 58, turnout: 68, margin: 20, results: [] },
+            { year: 2021, winningParty: 'NUP', voteShare: 45, turnout: 65, margin: 5, results: [] }
+        ],
+        candidateHistory: [
+            { year: 2021, position: 'MP', outcome: 'Nominated', party: party }
+        ],
+        socialMediaPoll: {
+            sentiment: { positive: 45, neutral: 30, negative: 25 },
+            totalMentions: 1200,
+            trendingTopics: ['#Roads', '#HealthCenters', '#YouthJobs']
+        },
+        osintBackground: {
+            maritalStatus: 'Married',
+            education: 'Bachelor\'s Degree',
+            lifestyle: 'Modest, community-focused',
+            controversies: [],
+            politicalAnalysis: 'Strong local roots but faces stiff competition from incumbents.',
+            digitalFootprint: 'Active on Facebook and WhatsApp groups. Limited Twitter presence.',
+            financialIntel: 'Supported by local business community and personal savings.',
+            networkMap: ['Local Councilors', 'Religious Leaders']
+        },
+        campaignStrategy: {
+            latestNews: [],
+            keyChallenges: ['Voter apathy', 'Logistics funding'],
+            winningStrategy: 'Focus on door-to-door mobilization and youth engagement.',
+            grandStrategy: 'Leverage local grievances to build a grassroots movement.'
+        }
+    };
 };

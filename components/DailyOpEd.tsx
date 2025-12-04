@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { generateDailyOpEd } from '../services/geminiService';
-import { FileText, RefreshCw, Calendar, Share2, Printer, PenTool, Feather, Quote, Bookmark, Download } from 'lucide-react';
+import { RefreshCw, Calendar, Share2, Printer, Feather, Quote, Bookmark, Download, Mail, Twitter } from 'lucide-react';
 import { Incident, Candidate } from '../types';
 
 declare global {
@@ -120,6 +120,25 @@ export const DailyOpEd: React.FC<DailyOpEdProps> = ({ incidents, candidates }) =
     }
   };
 
+  const handleEmailReport = () => {
+    if (!report) return;
+    const subject = encodeURIComponent(`Salus Daily SitRep: ${report.title}`);
+    const body = encodeURIComponent(
+        `DAILY SITUATION REPORT\nDate: ${dateStr}\n\n` +
+        `TITLE: ${report.title}\n\n` +
+        `KEY TAKEAWAYS:\n${report.keyTakeaways.map(t => `- ${t}`).join('\n')}\n\n` +
+        `Access full dashboard: ${window.location.href}`
+    );
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  };
+
+  const handleTwitterShare = () => {
+    if (!report) return;
+    const text = encodeURIComponent(`Salus Daily SitRep: ${report.title.substring(0, 200)}...`);
+    const url = encodeURIComponent(window.location.href);
+    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank');
+  };
+
   const handleShare = async () => {
     if (navigator.share) {
         try {
@@ -149,14 +168,14 @@ export const DailyOpEd: React.FC<DailyOpEdProps> = ({ incidents, candidates }) =
           <p className="text-lg text-slate-400 font-merriweather italic">AI-Generated Strategic Analysis</p>
         </div>
         
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <button 
             onClick={handleGenerate} 
             disabled={loading}
             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-lg font-medium transition-colors disabled:opacity-50 font-sans shadow-md"
           >
             <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
-            {loading ? 'Consulting AI...' : 'Refresh Briefing'}
+            {loading ? 'Consulting AI...' : 'Refresh'}
           </button>
           
           <button 
@@ -174,9 +193,23 @@ export const DailyOpEd: React.FC<DailyOpEdProps> = ({ incidents, candidates }) =
             <Printer size={20} />
           </button>
           <button 
+             onClick={handleEmailReport}
+             className="p-2.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 transition-colors shadow-md"
+             title="Email Report"
+          >
+            <Mail size={20} />
+          </button>
+          <button 
+             onClick={handleTwitterShare}
+             className="p-2.5 bg-[#1DA1F2]/20 hover:bg-[#1DA1F2]/30 text-[#1DA1F2] border border-[#1DA1F2]/50 rounded-lg transition-colors shadow-md"
+             title="Share on Twitter"
+          >
+            <Twitter size={20} />
+          </button>
+          <button 
              onClick={handleShare}
              className="p-2.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 transition-colors shadow-md"
-             title="Share"
+             title="System Share"
           >
             <Share2 size={20} />
           </button>

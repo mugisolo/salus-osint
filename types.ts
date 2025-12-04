@@ -84,6 +84,9 @@ export interface OSINTBackground {
   lifestyle: string;
   controversies: string[];
   politicalAnalysis: string;
+  digitalFootprint: string;
+  financialIntel: string;
+  networkMap: string[];
 }
 
 export interface NewsItem {

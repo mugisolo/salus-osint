@@ -29,7 +29,7 @@ export const subscribeToIncidents = (
         })) as Incident[];
         callback(incidents);
     }, (error) => {
-        if (onError) onError(error);
+        if (onError && error.code !== 'permission-denied') onError(error);
     });
 };
 
@@ -72,7 +72,7 @@ export const subscribeToPresidential = (
         })) as Candidate[];
         callback(candidates);
     }, (error) => {
-        if (onError) onError(error);
+        if (onError && error.code !== 'permission-denied') onError(error);
     });
 };
 
@@ -103,7 +103,7 @@ export const subscribeToParliamentary = (
         })) as ParliamentaryCandidate[];
         callback(candidates);
     }, (error) => {
-        if (onError) onError(error);
+        if (onError && error.code !== 'permission-denied') onError(error);
     });
 };
 
@@ -119,14 +119,23 @@ export const deleteParliamentaryFromDb = async (id: string) => {
 };
 
 /**
+ * Helper: Remove undefined values from object
+ * Firestore rejects undefined, so we must replace or remove them.
+ */
+const sanitizeData = (data: any) => {
+    // JSON stringify/parse automatically removes undefined keys
+    return JSON.parse(JSON.stringify(data));
+};
+
+/**
  * Helper to upload data in batches using SMART ID MAPPING
  */
 const batchUpload = async (collectionName: string, items: any[], onProgress?: (msg: string) => void) => {
-    const BATCH_SIZE = 400; // Safe limit under 500
+    const BATCH_SIZE = 300; // Updated to 300 as requested for stability
     const total = items.length;
     let count = 0;
 
-    if (onProgress) onProgress(`Starting upload for ${collectionName}...`);
+    if (onProgress) onProgress(`Starting upload for ${collectionName} (${total} items)...`);
 
     for (let i = 0; i < total; i += BATCH_SIZE) {
         const chunk = items.slice(i, i + BATCH_SIZE);
@@ -138,15 +147,24 @@ const batchUpload = async (collectionName: string, items: any[], onProgress?: (m
                 ? doc(db, collectionName, String(item.id)) 
                 : doc(collection(db, collectionName));
             
-            batch.set(docRef, item, { merge: true });
+            // IMPORTANT: Sanitize data to remove 'undefined' fields which cause Firestore errors
+            const cleanItem = sanitizeData(item);
+            
+            batch.set(docRef, cleanItem, { merge: true });
         });
 
-        await batch.commit();
-        count += chunk.length;
-        if (onProgress) onProgress(`Uploaded ${count}/${total} to ${collectionName}`);
-        
-        // Small delay to prevent browser freeze
-        await new Promise(resolve => setTimeout(resolve, 50));
+        try {
+            await batch.commit();
+            count += chunk.length;
+            if (onProgress) onProgress(`Uploaded ${count}/${total} to ${collectionName}`);
+            
+            // Increased delay to 500ms to be gentle on rate limits and prevent browser hang
+            await new Promise(resolve => setTimeout(resolve, 500));
+        } catch (err) {
+            console.error(`Batch failed at index ${i}:`, err);
+            if (onProgress) onProgress(`Error uploading batch ${i}-${i+BATCH_SIZE}. Checking console.`);
+            throw err; // Re-throw to stop process or let caller handle
+        }
     }
 };
 
@@ -166,15 +184,22 @@ export const seedDatabase = async (
     }
 
     try {
-        await batchUpload(INCIDENTS_COL, incidents, onProgress);
-        await batchUpload(PRES_CANDIDATES_COL, presCandidates, onProgress);
-        await batchUpload(PARL_CANDIDATES_COL, parlCandidates, onProgress);
+        // Only upload Incidents if needed
+        if (incidents.length > 0) await batchUpload(INCIDENTS_COL, incidents, onProgress);
+        
+        // Only upload Presidential if needed
+        if (presCandidates.length > 0) await batchUpload(PRES_CANDIDATES_COL, presCandidates, onProgress);
+        
+        // Upload the large Parliamentary dataset
+        if (parlCandidates.length > 0) {
+            await batchUpload(PARL_CANDIDATES_COL, parlCandidates, onProgress);
+        }
         
         onComplete();
     } catch (e: any) {
         console.error("Seeding Error:", e);
         if (e.code === 'permission-denied') {
-            alert("UPLOAD FAILED: Permission Denied. Check Firestore Rules.");
+            alert("UPLOAD FAILED: Permission Denied. Please check your Firestore Security Rules in the Firebase Console.");
         } else {
             alert(`Error seeding database: ${e.message}`);
         }

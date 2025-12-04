@@ -6,7 +6,7 @@ import {
   TrendingUp, TrendingDown, MessageCircle, X, Globe, 
   FileText, ExternalLink, Newspaper, BrainCircuit, 
   Lock, Target, Crosshair, Heart, GraduationCap, 
-  AlertTriangle, Activity, History, Plus, Upload, Trash2, Shield, Search
+  AlertTriangle, Activity, History, Plus, Upload, Trash2, Shield, Search, User
 } from 'lucide-react';
 
 interface CandidateListProps {
@@ -28,7 +28,7 @@ export const CandidateList: React.FC<CandidateListProps> = ({ candidates, onUpda
     name: '',
     party: '',
     district: 'National',
-    imageUrl: 'https://via.placeholder.com/150',
+    imageUrl: '',
     notes: ''
   });
 
@@ -39,8 +39,6 @@ export const CandidateList: React.FC<CandidateListProps> = ({ candidates, onUpda
   });
 
   const handleRowClick = async (candidate: Candidate) => {
-    // If admin mode is on, we might want to prevent detail view or allow both. 
-    // Usually clicking row shows details, delete button is separate.
     setSelectedCandidate(candidate);
     setProfile(null);
     setLoading(true);
@@ -73,12 +71,12 @@ export const CandidateList: React.FC<CandidateListProps> = ({ candidates, onUpda
             sentimentScore: Math.floor(Math.random() * 60) + 20,
             mentions: Math.floor(Math.random() * 10000) + 500,
             projectedVoteShare: Math.floor(Math.random() * 20),
-            imageUrl: newCandidate.imageUrl || 'https://via.placeholder.com/150',
+            imageUrl: '',
             notes: newCandidate.notes
         };
         onUpdateCandidates([...candidates, candidate]);
         setIsAddModalOpen(false);
-        setNewCandidate({ name: '', party: '', district: 'National', imageUrl: 'https://via.placeholder.com/150', notes: '' });
+        setNewCandidate({ name: '', party: '', district: 'National', imageUrl: '', notes: '' });
     }
   };
 
@@ -109,7 +107,7 @@ export const CandidateList: React.FC<CandidateListProps> = ({ candidates, onUpda
                           sentimentScore: 50,
                           mentions: 1000,
                           projectedVoteShare: 1,
-                          imageUrl: 'https://via.placeholder.com/150',
+                          imageUrl: '',
                           notes: notes || ''
                       });
                   }
@@ -200,16 +198,14 @@ export const CandidateList: React.FC<CandidateListProps> = ({ candidates, onUpda
             {filteredCandidates.map((candidate) => (
               <tr 
                 key={candidate.id} 
-                onClick={() => handleRowClick(candidate)}
                 className="hover:bg-slate-700/30 transition-colors cursor-pointer group"
+                onClick={() => handleRowClick(candidate)}
               >
                 <td className="p-6">
                   <div className="flex items-center gap-4">
-                    <img 
-                      src={candidate.imageUrl} 
-                      alt={candidate.name} 
-                      className="w-12 h-12 rounded-full object-cover border border-slate-600"
-                    />
+                    <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center border border-slate-600 text-slate-400">
+                         <User size={20} />
+                    </div>
                     <span className="font-medium text-lg text-slate-200 group-hover:text-blue-400 transition-colors">{candidate.name}</span>
                   </div>
                 </td>
@@ -259,7 +255,10 @@ export const CandidateList: React.FC<CandidateListProps> = ({ candidates, onUpda
                             <Trash2 size={18} />
                         </button>
                     ) : (
-                        <button className="text-blue-500 text-sm font-medium flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); handleRowClick(candidate); }}
+                            className="text-blue-500 hover:bg-blue-500/10 px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+                        >
                             Deep Analysis <BrainCircuit size={14} />
                         </button>
                     )}
@@ -309,16 +308,6 @@ export const CandidateList: React.FC<CandidateListProps> = ({ candidates, onUpda
                           />
                       </div>
                       <div>
-                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Image URL</label>
-                          <input 
-                              type="text"
-                              className="w-full bg-slate-800 border border-slate-600 rounded-lg p-2.5 text-white focus:border-blue-500 outline-none text-sm"
-                              value={newCandidate.imageUrl}
-                              onChange={e => setNewCandidate({...newCandidate, imageUrl: e.target.value})}
-                              placeholder="https://..."
-                          />
-                      </div>
-                      <div>
                           <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Notes</label>
                           <input 
                               type="text"
@@ -338,7 +327,7 @@ export const CandidateList: React.FC<CandidateListProps> = ({ candidates, onUpda
           </div>
       )}
 
-      {/* Presidential Detail Panel (Existing code) */}
+      {/* Presidential Detail Panel */}
       {selectedCandidate && (
         <>
           <div 
@@ -350,18 +339,20 @@ export const CandidateList: React.FC<CandidateListProps> = ({ candidates, onUpda
               {/* Header */}
               <div className="flex justify-between items-start mb-8">
                 <div className="flex items-center gap-6">
-                  <img 
-                    src={selectedCandidate.imageUrl} 
-                    alt={selectedCandidate.name} 
-                    className="w-24 h-24 rounded-xl object-cover border-2 border-slate-600 shadow-lg"
-                  />
+                   <div className="w-20 h-20 bg-slate-800 rounded-xl flex items-center justify-center border border-slate-700">
+                         <User size={40} className="text-slate-400" />
+                    </div>
                   <div>
                     <h2 className="text-3xl font-bold text-white leading-tight">{selectedCandidate.name}</h2>
-                    <div className="flex items-center gap-3 mt-2">
+                    <div className="flex items-center gap-4 mt-2">
                        <span className="px-3 py-1 bg-blue-900/30 text-blue-400 border border-blue-500/30 rounded text-sm font-bold">
                          {selectedCandidate.party}
                        </span>
-                       <span className="text-slate-400 text-lg">Presidential Candidate</span>
+                       <div className="flex items-center gap-2 text-slate-400">
+                          <TrendingUp size={16} className={selectedCandidate.projectedVoteShare > 50 ? "text-green-500" : "text-yellow-500"} />
+                          <span className="font-bold text-white">{selectedCandidate.projectedVoteShare}%</span> 
+                          <span className="text-xs uppercase">Proj. Vote Share</span>
+                       </div>
                     </div>
                   </div>
                 </div>
@@ -473,7 +464,7 @@ export const CandidateList: React.FC<CandidateListProps> = ({ candidates, onUpda
                                         {c}
                                      </li>
                                   ))}
-                               </ul>
+                                </ul>
                             </div>
                             <div>
                                <p className="text-sm text-slate-500 uppercase font-bold mb-3 flex items-center gap-2">
@@ -496,18 +487,18 @@ export const CandidateList: React.FC<CandidateListProps> = ({ candidates, onUpda
                       <div className="p-6 space-y-8">
                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <div className="flex items-start gap-4">
-                               <div className="mt-1 text-slate-500"><Heart size={20} /></div>
-                               <div>
+                                <div className="mt-1 text-slate-500"><Heart size={20} /></div>
+                                <div>
                                   <p className="text-sm text-slate-400 uppercase font-bold">Marital Status</p>
                                   <p className="text-base text-slate-200">{profile.osintBackground.maritalStatus}</p>
-                               </div>
+                                </div>
                             </div>
                             <div className="flex items-start gap-4">
-                               <div className="mt-1 text-slate-500"><GraduationCap size={20} /></div>
-                               <div>
+                                <div className="mt-1 text-slate-500"><GraduationCap size={20} /></div>
+                                <div>
                                   <p className="text-sm text-slate-400 uppercase font-bold">Education</p>
                                   <p className="text-base text-slate-200">{profile.osintBackground.education}</p>
-                               </div>
+                                </div>
                             </div>
                          </div>
 
@@ -526,9 +517,37 @@ export const CandidateList: React.FC<CandidateListProps> = ({ candidates, onUpda
                             <div className="bg-blue-900/20 p-4 rounded border border-blue-500/20">
                                <p className="text-base text-slate-200 leading-relaxed">
                                   {profile.osintBackground.politicalAnalysis}
-                               </p>
+                                </p>
                             </div>
                          </div>
+
+                         {/* Digital & Financial Intel */}
+                         {(profile.osintBackground.digitalFootprint || profile.osintBackground.financialIntel) && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-slate-700/50 pt-6">
+                                <div>
+                                    <p className="text-sm text-slate-400 uppercase font-bold mb-2">Digital Footprint</p>
+                                    <p className="text-sm text-slate-300 leading-relaxed">{profile.osintBackground.digitalFootprint || "Data unavailable."}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-slate-400 uppercase font-bold mb-2">Financial Intelligence</p>
+                                    <p className="text-sm text-slate-300 leading-relaxed">{profile.osintBackground.financialIntel || "Data unavailable."}</p>
+                                </div>
+                            </div>
+                         )}
+
+                         {/* Network Map */}
+                         {profile.osintBackground.networkMap && profile.osintBackground.networkMap.length > 0 && (
+                            <div className="border-t border-slate-700/50 pt-6">
+                                <p className="text-sm text-slate-400 uppercase font-bold mb-3">Key Network & Allies</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {profile.osintBackground.networkMap.map((ally, i) => (
+                                        <span key={i} className="bg-blue-900/30 text-blue-300 px-3 py-1 rounded-full text-xs border border-blue-500/30">
+                                            {ally}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                         )}
 
                          <div>
                            <p className="text-sm text-red-400 uppercase font-bold mb-3 flex items-center gap-2">
