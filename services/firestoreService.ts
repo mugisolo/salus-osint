@@ -12,21 +12,23 @@ const PARL_CANDIDATES_COL = 'parliamentary_candidates';
  */
 export const subscribeToIncidents = (
     callback: (data: Incident[]) => void,
-    onError?: (error: FirestoreError) => void
+    onError?: (error: FirestoreError) => void,
+    onEmpty?: () => void
 ) => {
     if (!db) return () => {}; // No-op if DB not ready
 
     const q = query(collection(db, INCIDENTS_COL), orderBy('date', 'desc'));
     
     return onSnapshot(q, (snapshot) => {
+        if (snapshot.empty && onEmpty) {
+            onEmpty();
+        }
         const incidents = snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
         })) as Incident[];
         callback(incidents);
     }, (error) => {
-        // Suppress explicit console error to avoid noise when permission is denied
-        // The UI will handle the fallback via onError
         if (onError) onError(error);
     });
 };
@@ -34,7 +36,6 @@ export const subscribeToIncidents = (
 export const addIncidentToDb = async (incident: Incident) => {
     if (!db) return;
     try {
-        // We use the ID from the local object or let Firestore generate one
         const { id, ...data } = incident;
         await addDoc(collection(db, INCIDENTS_COL), data);
     } catch (e) {
@@ -95,7 +96,6 @@ export const subscribeToParliamentary = (
 ) => {
     if (!db) return () => {};
     
-    // Limits can be applied here if data is huge
     return onSnapshot(collection(db, PARL_CANDIDATES_COL), (snapshot) => {
         const candidates = snapshot.docs.map(doc => ({
             id: doc.id,
@@ -120,77 +120,61 @@ export const deleteParliamentaryFromDb = async (id: string) => {
 
 /**
  * Helper to upload data in batches using SMART ID MAPPING
- * 1. Uses item.id as the Document Key (preventing duplicates).
- * 2. Uses { merge: true } to update existing records without data loss.
- * 3. Batches operations to 400 to respect Firestore limits (500).
  */
-const batchUpload = async (collectionName: string, items: any[]) => {
-    const BATCH_SIZE = 400;
+const batchUpload = async (collectionName: string, items: any[], onProgress?: (msg: string) => void) => {
+    const BATCH_SIZE = 400; // Safe limit under 500
     const total = items.length;
     let count = 0;
 
-    console.log(`Starting SMART batch upload for ${collectionName}. Total items: ${total}`);
+    if (onProgress) onProgress(`Starting upload for ${collectionName}...`);
 
     for (let i = 0; i < total; i += BATCH_SIZE) {
         const chunk = items.slice(i, i + BATCH_SIZE);
         const batch = writeBatch(db);
         
         chunk.forEach((item) => {
-            // SAFETY: Use the item's existing ID as the Firestore Document ID.
-            // This ensures idempotency (running script twice won't create duplicates).
+            // Use existing ID if available to prevent duplicates
             const docRef = item.id 
                 ? doc(db, collectionName, String(item.id)) 
                 : doc(collection(db, collectionName));
             
-            // Merge: true ensures we update specific fields if they exist, rather than overwriting
             batch.set(docRef, item, { merge: true });
         });
 
         await batch.commit();
         count += chunk.length;
-        console.log(`Uploaded batch: ${count}/${total} to ${collectionName}`);
+        if (onProgress) onProgress(`Uploaded ${count}/${total} to ${collectionName}`);
+        
+        // Small delay to prevent browser freeze
+        await new Promise(resolve => setTimeout(resolve, 50));
     }
 };
 
 /**
  * ONE-TIME SEED FUNCTION
- * Call this button once to upload your local MOCK data to Firestore using Batches
  */
 export const seedDatabase = async (
     incidents: Incident[], 
     presCandidates: Candidate[], 
-    parlCandidates: ParliamentaryCandidate[]
+    parlCandidates: ParliamentaryCandidate[],
+    onProgress: (msg: string) => void,
+    onComplete: () => void
 ) => {
     if (!db) {
-        alert("Firebase not configured. Please check firebaseConfig.ts");
+        alert("Firebase not configured.");
         return;
     }
 
-    const confirmMsg = `Ready to upload massive dataset to Cloud:\n\n` +
-        `- ${parlCandidates.length} Parliamentary Candidates\n` +
-        `- ${presCandidates.length} Presidential Candidates\n` +
-        `- ${incidents.length} Incidents\n\n` +
-        `Mode: SMART BATCH (Duplicate Prevention Enabled).\n` + 
-        `Click OK to start. This may take a few seconds.`;
-
-    if (!window.confirm(confirmMsg)) return;
-
     try {
-        // Upload Incidents
-        await batchUpload(INCIDENTS_COL, incidents);
-
-        // Upload Presidential
-        await batchUpload(PRES_CANDIDATES_COL, presCandidates);
-
-        // Upload Parliamentary (The big one)
-        await batchUpload(PARL_CANDIDATES_COL, parlCandidates);
+        await batchUpload(INCIDENTS_COL, incidents, onProgress);
+        await batchUpload(PRES_CANDIDATES_COL, presCandidates, onProgress);
+        await batchUpload(PARL_CANDIDATES_COL, parlCandidates, onProgress);
         
-        alert("SUCCESS: All datasets successfully synchronized to Firestore Cloud.\n\nVerify in your Firebase Console.");
-        
+        onComplete();
     } catch (e: any) {
         console.error("Seeding Error:", e);
         if (e.code === 'permission-denied') {
-            alert("UPLOAD FAILED: Permission Denied.\n\nPlease go to Firebase Console > Firestore > Rules and change 'allow read, write: if false;' to 'allow read, write: if true;'");
+            alert("UPLOAD FAILED: Permission Denied. Check Firestore Rules.");
         } else {
             alert(`Error seeding database: ${e.message}`);
         }
