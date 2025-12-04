@@ -17,7 +17,8 @@ import {
   CheckCircle,
   AlertTriangle,
   Table,
-  Database
+  Database,
+  Lock
 } from 'lucide-react';
 import { StatCard } from './StatCard';
 import { ViolenceMap } from './ViolenceMap';
@@ -254,6 +255,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onReturnToSite }) => {
 
   // Connection State
   const [isFirestoreConnected, setIsFirestoreConnected] = useState(!!db);
+  const [dbError, setDbError] = useState<string | null>(null);
 
   const [stats, setStats] = useState({
     violenceIndex: '0.0',
@@ -270,26 +272,34 @@ export const Dashboard: React.FC<DashboardProps> = ({ onReturnToSite }) => {
         return;
     }
 
+    const handleDbError = (error: any) => {
+        if (error.code === 'permission-denied') {
+            console.warn("Firestore permission denied. Switching to local mock data.");
+            setIsFirestoreConnected(false); // Switch to local mode
+            setDbError(null); // Do not show banner, just degrade gracefully
+        } else {
+            setDbError(`Database Error: ${error.message}`);
+        }
+    };
+
     // Subscribe to Incidents
     const unsubIncidents = subscribeToIncidents((data) => {
         if (data.length > 0) {
             setIncidents(data);
+            setIsFirestoreConnected(true);
+            setDbError(null);
         }
-    });
+    }, handleDbError);
 
     // Subscribe to Presidential
     const unsubPresidential = subscribeToPresidential((data) => {
-        if (data.length > 0) {
-            setPresidentialCandidates(data);
-        }
-    });
+        if (data.length > 0) setPresidentialCandidates(data);
+    }, handleDbError);
 
     // Subscribe to Parliamentary
     const unsubParliamentary = subscribeToParliamentary((data) => {
-        if (data.length > 0) {
-            setParliamentaryCandidates(data);
-        }
-    });
+        if (data.length > 0) setParliamentaryCandidates(data);
+    }, handleDbError);
 
     return () => {
         unsubIncidents();
@@ -299,21 +309,23 @@ export const Dashboard: React.FC<DashboardProps> = ({ onReturnToSite }) => {
   }, []);
 
   // --- 2. Live WebSocket Feed (Augmentation) ---
-  // Keeps the WebSocket feed for alerts, but writes to Firestore if possible, or local state
   useEffect(() => {
     const handleRealTimeIncident = (incident: Incident) => {
       console.log("Salus Stream: New Incident Received", incident);
-      if (db) {
-          // If we have DB, save it there so all users see it
-          addIncidentToDb(incident);
+      if (db && isFirestoreConnected) {
+          // If we have DB, try save it there
+          addIncidentToDb(incident).catch(() => {
+              // Fallback if write fails
+              setIncidents(currentIncidents => [incident, ...currentIncidents]);
+          });
       } else {
-          // Fallback to local
+          // Fallback to local state if offline/permission denied
           setIncidents(currentIncidents => [incident, ...currentIncidents]);
       }
     };
     liveDataService.connect(handleRealTimeIncident);
     return () => { liveDataService.disconnect(handleRealTimeIncident); };
-  }, []);
+  }, [isFirestoreConnected]);
   
   // --- 3. Stats Calculation (Runs whenever data changes) ---
   useEffect(() => {
@@ -368,7 +380,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onReturnToSite }) => {
 
   const handleUpdateIncidents = (updatedList: Incident[]) => {
       // Find the difference to determine add or delete (simple heuristic for Admin Mode)
-      if (db) {
+      if (db && isFirestoreConnected) {
           if (updatedList.length > incidents.length) {
               // Added
               const newItems = updatedList.filter(x => !incidents.includes(x));
@@ -384,7 +396,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onReturnToSite }) => {
   };
 
   const handleUpdatePresCandidates = (updatedList: Candidate[]) => {
-      if (db) {
+      if (db && isFirestoreConnected) {
           if (updatedList.length > presidentialCandidates.length) {
              const newItems = updatedList.filter(x => !presidentialCandidates.includes(x));
              newItems.forEach(i => addPresidentialToDb(i));
@@ -398,7 +410,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onReturnToSite }) => {
   };
 
   const handleUpdateParlCandidates = (updatedList: ParliamentaryCandidate[]) => {
-      if (db) {
+      if (db && isFirestoreConnected) {
          if (updatedList.length > parliamentaryCandidates.length) {
              const newItems = updatedList.filter(x => !parliamentaryCandidates.includes(x));
              newItems.forEach(i => addParliamentaryToDb(i));
@@ -652,23 +664,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ onReturnToSite }) => {
 
         <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-slate-800">
           {/* Cloud Connection Status & Seed Button */}
-          {isFirestoreConnected ? (
-              <div className="mb-4">
-                  <div className="flex items-center gap-2 text-green-400 text-xs font-bold uppercase mb-2">
-                     <Database size={12} /> Connected to Cloud
-                  </div>
+          <div className="mb-4">
+              <div className={`flex items-center gap-2 text-xs font-bold uppercase mb-2 ${dbError ? 'text-red-400' : isFirestoreConnected ? 'text-green-400' : 'text-orange-400'}`}>
+                 <Database size={12} /> 
+                 {dbError ? 'Connection Error' : isFirestoreConnected ? 'Connected to Cloud' : 'Local Storage Mode'}
+              </div>
+              
+              {/* Always show seed button if DB is configured, to allow initialization */}
+              {db && (
                   <button 
                     onClick={handleSeed}
                     className="w-full text-xs bg-slate-800 border border-slate-700 text-slate-400 py-2 rounded hover:text-white hover:border-slate-500 transition-colors"
                   >
-                     Upload Mock Data to DB
+                     {isFirestoreConnected ? 'Re-Upload Mock Data' : 'Initialize Cloud Database'}
                   </button>
-              </div>
-          ) : (
-             <div className="mb-4 text-xs text-orange-400 flex items-center gap-2">
-                <AlertTriangle size={12} /> Using Local Storage
-             </div>
-          )}
+              )}
+          </div>
 
            <button 
             onClick={onReturnToSite}
@@ -721,6 +732,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ onReturnToSite }) => {
             </button>
           </div>
         </header>
+
+        {/* Error Banner */}
+        {dbError && (
+            <div className="bg-red-500/10 border-b border-red-500/20 p-4 flex items-center justify-center gap-3 animate-in slide-in-from-top text-center print:hidden">
+                <Lock className="text-red-400" size={20} />
+                <span className="text-red-300 text-sm font-medium">{dbError}</span>
+            </div>
+        )}
 
         {/* Page Content */}
         <main className="p-8 flex-1 overflow-y-auto print:p-0">
