@@ -1,11 +1,13 @@
+
 import { db } from '../firebaseConfig';
-import { collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, setDoc, query, orderBy, FirestoreError, writeBatch } from "firebase/firestore";
-import { Incident, Candidate, ParliamentaryCandidate } from '../types';
+import { collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, setDoc, query, orderBy, FirestoreError, writeBatch, getDocs, limit } from "firebase/firestore";
+import { Incident, Candidate, ParliamentaryCandidate, SitRep } from '../types';
 
 // Collection References
 const INCIDENTS_COL = 'incidents';
 const PRES_CANDIDATES_COL = 'presidential_candidates';
 const PARL_CANDIDATES_COL = 'parliamentary_candidates';
+const SITREP_COL = 'sitreps';
 
 /**
  * Subscribe to Incidents
@@ -119,6 +121,31 @@ export const deleteParliamentaryFromDb = async (id: string) => {
 };
 
 /**
+ * SitRep Management
+ */
+export const saveSitRep = async (sitRep: SitRep) => {
+    if (!db) throw new Error("Database not connected");
+    // Use date as ID to prevent duplicates for the same day, or append timestamp if multiple allowed
+    // Here we use a generated ID but check queries later
+    await addDoc(collection(db, SITREP_COL), sitRep);
+};
+
+export const getSitRepHistory = async (): Promise<SitRep[]> => {
+    if (!db) return [];
+    try {
+        const q = query(collection(db, SITREP_COL), orderBy('timestamp', 'desc'), limit(30));
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        })) as SitRep[];
+    } catch (e) {
+        console.error("Error fetching SitReps:", e);
+        return [];
+    }
+};
+
+/**
  * Helper: Remove undefined values from object
  * Firestore rejects undefined, so we must replace or remove them.
  */
@@ -131,7 +158,7 @@ const sanitizeData = (data: any) => {
  * Helper to upload data in batches using SMART ID MAPPING
  */
 const batchUpload = async (collectionName: string, items: any[], onProgress?: (msg: string) => void) => {
-    const BATCH_SIZE = 300; // Updated to 300 as requested for stability
+    const BATCH_SIZE = 300; // Stability batch size
     const total = items.length;
     let count = 0;
 
@@ -158,12 +185,12 @@ const batchUpload = async (collectionName: string, items: any[], onProgress?: (m
             count += chunk.length;
             if (onProgress) onProgress(`Uploaded ${count}/${total} to ${collectionName}`);
             
-            // Increased delay to 500ms to be gentle on rate limits and prevent browser hang
+            // Delay to prevent rate limiting
             await new Promise(resolve => setTimeout(resolve, 500));
         } catch (err) {
             console.error(`Batch failed at index ${i}:`, err);
             if (onProgress) onProgress(`Error uploading batch ${i}-${i+BATCH_SIZE}. Checking console.`);
-            throw err; // Re-throw to stop process or let caller handle
+            throw err; 
         }
     }
 };

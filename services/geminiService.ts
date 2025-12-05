@@ -1,5 +1,6 @@
+
 import { GoogleGenAI } from "@google/genai";
-import { AnalysisResult, SearchAnalysisResult, GroundingChunk, PresidentialProfile } from "../types";
+import { AnalysisResult, SearchAnalysisResult, GroundingChunk, PresidentialProfile, ConstituencyProfile } from "../types";
 
 // Initialize Gemini Client
 // API Key must be set in the environment variables as API_KEY
@@ -189,7 +190,7 @@ export const generatePoliticalStrategy = async (
   party: string,
   constituency: string,
   contextData: string
-): Promise<{ grandStrategy: string; sitRep: string } | null> => {
+): Promise<{ grandStrategy: string; sitRep: string; osintBackground?: any } | null> => {
   if (!apiKey) {
     return null;
   }
@@ -197,35 +198,30 @@ export const generatePoliticalStrategy = async (
   const prompt = `
     You are "The Grand Strategist," an advanced AI engine synthesizing the political, military, and strategic wisdom of history's greatest minds.
 
-    **Your Council of Strategists:**
-    1. **Sun Tzu** (The Art of War)
-    2. **Alexander the Great** (Speed & Decisive Action)
-    3. **Genghis Khan** (Mobility & Psychological Warfare)
-    4. **Napoleon Bonaparte** (Concentration of Force)
-    5. **Scipio Africanus** (Adaptability)
-    6. **Carl von Clausewitz** (Center of Gravity)
-    7. **Hannibal Barca** (Asymmetric Tactics)
-    8. **Erwin Rommel** (Momentum)
-    9. **Che Guevara** (Guerrilla Warfare)
-    10. **John Boyd** (OODA Loop)
-    11. **Robert Moses** (Bureaucratic Power)
-
     **The Mission:**
-    Analyze the political battlefield for:
+    Conduct a Forensic OSINT Analysis for:
     - **Candidate:** ${candidateName}
     - **Party:** ${party}
     - **Constituency:** ${constituency}
     - **Context:** ${contextData}
 
     **Directives:**
-    1. **SitRep (Situation Report):** Generate a detailed OSINT Political Analysis of the constituency. Identify the incumbent's weakness, the demographic shifts, and the "ground truth" of the political mood.
-    2. **Grand Strategy:** Synthesize the wisdom of your council to provide a winning strategy. Quote specific strategists.
+    1. **SitRep (Situation Report):** Identify the incumbent's weakness, demographic shifts, and the "ground truth".
+    2. **Forensic OSINT:** You MUST generate specific fields for:
+       - **Digital Footprint:** Their social media strength, online attacks faced, or viral moments.
+       - **Financial Intelligence:** Likely funding sources (personal wealth, party funds, or business interests).
+       - **Network Map:** Key local influencers, religious leaders, or business tycoons backing them.
+    3. **Grand Strategy:** Synthesize the wisdom of Sun Tzu, Napoleon, and Clausewitz to provide a winning strategy.
 
-    **Output Requirement:**
-    Return ONLY a JSON object with this structure:
+    **Output Requirement (Strict JSON):**
     {
-      "grandStrategy": "The 200-word deep strategic analysis citing the historical figures.",
-      "sitRep": "A detailed 150-word Situation Report (SitRep) analyzing the political terrain and candidate's standing."
+      "grandStrategy": "The 200-word deep strategic analysis citing historical figures.",
+      "sitRep": "A detailed 150-word Situation Report analyzing the political terrain.",
+      "osintBackground": {
+          "digitalFootprint": "Detailed assessment of online presence and sentiment.",
+          "financialIntel": "Assessment of campaign financing capabilities and economic leverage.",
+          "networkMap": ["Ally 1", "Group 2", "Influencer 3"]
+      }
     }
   `;
 

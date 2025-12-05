@@ -37,7 +37,7 @@ export const ParliamentaryAnalytics: React.FC<ParliamentaryAnalyticsProps> = ({ 
   });
   
   // AI Strategy State
-  const [aiReport, setAiReport] = useState<{ grandStrategy: string; sitRep: string } | null>(null);
+  const [aiReport, setAiReport] = useState<{ grandStrategy: string; sitRep: string; osintBackground?: any } | null>(null);
   const [isGeneratingStrategy, setIsGeneratingStrategy] = useState(false);
 
   const filteredCandidates = useMemo(() => {
@@ -50,8 +50,6 @@ export const ParliamentaryAnalytics: React.FC<ParliamentaryAnalyticsProps> = ({ 
   }, [candidates, searchTerm, filterParty]);
 
   const handleRowClick = async (candidate: ParliamentaryCandidate) => {
-    // If in admin mode, clicking row should not open details unless clicked on specific non-action areas
-    // But for simplicity, we keep detail view but prioritize delete button click
     setSelectedCandidate(candidate);
     const profile = getConstituencyProfile(candidate.constituency, candidate.name, candidate.party);
     setConstituencyProfile(profile);
@@ -670,6 +668,86 @@ export const ParliamentaryAnalytics: React.FC<ParliamentaryAnalyticsProps> = ({ 
                  </div>
               </div>
 
+              {/* --- OSINT Personal Dossier Subsection --- */}
+              <div className="bg-slate-800 rounded-lg border border-slate-700 mb-10 overflow-hidden">
+                    <div className="bg-slate-900/50 px-6 py-4 border-b border-slate-700 flex items-center gap-3">
+                        <FileText size={18} className="text-blue-400" />
+                        <h4 className="text-sm font-bold text-white uppercase tracking-wide">Forensic OSINT Dossier</h4>
+                    </div>
+                    <div className="p-6 space-y-6">
+                        {/* Quick Facts Grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div className="flex items-start gap-4">
+                                <div className="mt-1 text-slate-500"><Heart size={20} /></div>
+                                <div>
+                                    <p className="text-sm text-slate-400 uppercase font-bold">Marital Status</p>
+                                    <p className="text-base text-slate-200">{constituencyProfile.osintBackground.maritalStatus}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-start gap-4">
+                                <div className="mt-1 text-slate-500"><GraduationCap size={20} /></div>
+                                <div>
+                                    <p className="text-sm text-slate-400 uppercase font-bold">Education</p>
+                                    <p className="text-base text-slate-200 leading-snug">{constituencyProfile.osintBackground.education}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Lifestyle Analysis */}
+                        <div>
+                            <p className="text-sm text-slate-400 uppercase font-bold mb-3">Lifestyle & Profile Analysis</p>
+                            <p className="text-base text-slate-300 leading-relaxed bg-slate-900/50 p-4 rounded border border-slate-700/50 italic">
+                                "{constituencyProfile.osintBackground.lifestyle}"
+                            </p>
+                        </div>
+
+                        {/* Deep Forensic Data from Gemini */}
+                        {aiReport && aiReport.osintBackground && (
+                            <div className="grid grid-cols-1 gap-6 border-t border-slate-700/50 pt-6">
+                                {aiReport.osintBackground.financialIntel && (
+                                    <div>
+                                        <p className="text-sm text-green-400 uppercase font-bold mb-2">Financial Intelligence</p>
+                                        <p className="text-sm text-slate-300 leading-relaxed">{aiReport.osintBackground.financialIntel}</p>
+                                    </div>
+                                )}
+                                {aiReport.osintBackground.digitalFootprint && (
+                                    <div>
+                                        <p className="text-sm text-blue-400 uppercase font-bold mb-2">Digital Footprint</p>
+                                        <p className="text-sm text-slate-300 leading-relaxed">{aiReport.osintBackground.digitalFootprint}</p>
+                                    </div>
+                                )}
+                                {aiReport.osintBackground.networkMap && aiReport.osintBackground.networkMap.length > 0 && (
+                                    <div>
+                                        <p className="text-sm text-purple-400 uppercase font-bold mb-3">Network Map & Allies</p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {aiReport.osintBackground.networkMap.map((ally: string, i: number) => (
+                                                <span key={i} className="bg-slate-900 px-3 py-1 rounded-full text-xs text-slate-300 border border-slate-700">
+                                                    {ally}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Controversies / Bad Press */}
+                        <div className="border-t border-slate-700/50 pt-6">
+                            <p className="text-sm text-red-400 uppercase font-bold mb-4 flex items-center gap-2">
+                                <AlertTriangle size={16} /> Reported Controversies (Verified & Unverified)
+                            </p>
+                            <ul className="space-y-3">
+                                {constituencyProfile.osintBackground.controversies.map((item, idx) => (
+                                    <li key={idx} className="text-base text-slate-300 flex items-start gap-3">
+                                        <span className="text-red-500 mt-2 text-[10px]">●</span>
+                                        {item}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    </div>
+               </div>
+
               {/* --- Campaign Strategy & News Feed --- */}
               <div className="mb-10">
                  <h3 className="text-base font-bold text-white uppercase mb-4 flex items-center gap-3">
@@ -825,64 +903,6 @@ export const ParliamentaryAnalytics: React.FC<ParliamentaryAnalyticsProps> = ({ 
                                </div>
                            </div>
                        </div>
-                   </div>
-
-                   {/* OSINT Personal Dossier Subsection */}
-                   <div className="bg-slate-800 rounded-lg border border-slate-700 mt-6 overflow-hidden">
-                        <div className="bg-slate-900/50 px-6 py-4 border-b border-slate-700 flex items-center gap-3">
-                            <FileText size={18} className="text-blue-400" />
-                            <h4 className="text-sm font-bold text-white uppercase tracking-wide">OSINT Personal Dossier</h4>
-                        </div>
-                        <div className="p-6 space-y-6">
-                            {/* Quick Facts Grid */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                <div className="flex items-start gap-4">
-                                    <div className="mt-1 text-slate-500"><Heart size={20} /></div>
-                                    <div>
-                                        <p className="text-sm text-slate-400 uppercase font-bold">Marital Status</p>
-                                        <p className="text-base text-slate-200">{constituencyProfile.osintBackground.maritalStatus}</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-start gap-4">
-                                    <div className="mt-1 text-slate-500"><GraduationCap size={20} /></div>
-                                    <div>
-                                        <p className="text-sm text-slate-400 uppercase font-bold">Education</p>
-                                        <p className="text-base text-slate-200 leading-snug">{constituencyProfile.osintBackground.education}</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Lifestyle Analysis */}
-                            <div>
-                                <p className="text-sm text-slate-400 uppercase font-bold mb-3">Lifestyle & Profile Analysis</p>
-                                <p className="text-base text-slate-300 leading-relaxed bg-slate-900/50 p-4 rounded border border-slate-700/50 italic">
-                                    "{constituencyProfile.osintBackground.lifestyle}"
-                                </p>
-                            </div>
-
-                            {/* Political Analysis (Static/Fallback) */}
-                            <div>
-                                <p className="text-sm text-slate-400 uppercase font-bold mb-3">Strategic Political Assessment</p>
-                                <p className="text-base text-slate-300 leading-relaxed">
-                                    {constituencyProfile.osintBackground.politicalAnalysis}
-                                </p>
-                            </div>
-
-                            {/* Controversies / Bad Press */}
-                            <div className="border-t border-slate-700/50 pt-6">
-                                <p className="text-sm text-red-400 uppercase font-bold mb-4 flex items-center gap-2">
-                                    <AlertTriangle size={16} /> Reported Controversies (Verified & Unverified)
-                                </p>
-                                <ul className="space-y-3">
-                                    {constituencyProfile.osintBackground.controversies.map((item, idx) => (
-                                        <li key={idx} className="text-base text-slate-300 flex items-start gap-3">
-                                            <span className="text-red-500 mt-2 text-[10px]">●</span>
-                                            {item}
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        </div>
                    </div>
               </div>
 

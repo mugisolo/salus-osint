@@ -59,22 +59,18 @@ export const ReportAnalyzer: React.FC = () => {
     try {
         const originalElement = contentRef.current;
         
-        // Clone the element to capture full height off-screen without scrollbars
+        // Clone node to ensure we capture everything even if scrolled, offscreen
         const clonedElement = originalElement.cloneNode(true) as HTMLElement;
         
-        // Apply print-friendly styles to the clone
+        // Setup clone styles for full capture
         Object.assign(clonedElement.style, {
-            position: 'absolute',
-            top: '-9999px',
-            left: '-9999px',
-            width: '1200px', // Fixed width for consistent layout
+            position: 'fixed',
+            top: '-10000px',
+            left: '-10000px',
+            width: '1000px', // Standardize width
             height: 'auto',
-            maxHeight: 'none',
             overflow: 'visible',
-            zIndex: '-1',
-            backgroundColor: '#ffffff',
-            color: '#000000', // Ensure text is black
-            padding: '40px'
+            zIndex: '-1000'
         });
         
         document.body.appendChild(clonedElement);
@@ -82,35 +78,25 @@ export const ReportAnalyzer: React.FC = () => {
         const canvas = await window.html2canvas(clonedElement, { 
             scale: 2,
             useCORS: true,
-            backgroundColor: '#ffffff',
-            windowWidth: 1200
+            backgroundColor: '#ffffff'
         });
         
-        // Clean up
         document.body.removeChild(clonedElement);
         
         const imgData = canvas.toDataURL('image/png');
+        const imgWidth = canvas.width;
+        const imgHeight = canvas.height;
+        
         const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const pageWidth = pdf.internal.pageSize.getWidth();
-        const pageHeight = pdf.internal.pageSize.getHeight();
         
-        const imgProps = pdf.getImageProperties(imgData);
-        const pdfHeight = (imgProps.height * pageWidth) / imgProps.width;
+        // One page PDF matching content dimensions exactly
+        const pdf = new jsPDF({
+            orientation: imgWidth > imgHeight ? 'l' : 'p',
+            unit: 'px',
+            format: [imgWidth, imgHeight]
+        });
         
-        let heightLeft = pdfHeight;
-        let position = 0;
-
-        // Add pages
-        pdf.addImage(imgData, 'PNG', 0, position, pageWidth, pdfHeight);
-        heightLeft -= pageHeight;
-
-        while (heightLeft > 0) {
-          position -= pageHeight;
-          pdf.addPage();
-          pdf.addImage(imgData, 'PNG', 0, position, pageWidth, pdfHeight);
-          heightLeft -= pageHeight;
-        }
+        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
         
         pdf.save(`Salus_Intel_Report_${new Date().toISOString().split('T')[0]}.pdf`);
     } catch (error) {

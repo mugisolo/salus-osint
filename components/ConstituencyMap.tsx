@@ -1,9 +1,9 @@
 
 import React, { useMemo, useState, useRef } from 'react';
-import { ParliamentaryCandidate } from '../types';
+import { ParliamentaryCandidate, ConstituencyProfile } from '../types';
 import { getConstituencyProfile } from '../data/parliamentaryData';
 import { generatePoliticalStrategy } from '../services/geminiService';
-import { Users, Search, MapPin, ArrowUpRight, X, BrainCircuit, Activity, FileText, AlertTriangle, Shield, Lock, Plus, Upload, Trash2 } from 'lucide-react';
+import { Users, Search, MapPin, ArrowUpRight, X, BrainCircuit, Activity, FileText, AlertTriangle, Shield, Lock, Plus, Upload, Trash2, Zap, BookOpen, Briefcase, TrendingDown, Target } from 'lucide-react';
 
 interface ConstituencyMapProps {
   candidates: ParliamentaryCandidate[];
@@ -13,6 +13,7 @@ interface ConstituencyMapProps {
 export const ConstituencyMap: React.FC<ConstituencyMapProps> = ({ candidates, onUpdateCandidates }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedConstituency, setSelectedConstituency] = useState<any | null>(null);
+  const [constituencyProfile, setConstituencyProfile] = useState<ConstituencyProfile | null>(null);
   const [aiReport, setAiReport] = useState<{ grandStrategy: string; sitRep: string } | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -62,10 +63,13 @@ export const ConstituencyMap: React.FC<ConstituencyMapProps> = ({ candidates, on
   const handleRowClick = async (data: any) => {
     setSelectedConstituency(data);
     setAiReport(null);
+    setConstituencyProfile(null);
     setLoading(true);
 
     try {
       const profile = getConstituencyProfile(data.name, data.winner.name, data.winner.party);
+      setConstituencyProfile(profile);
+
       const context = `
         Constituency: ${data.name}.
         Region: ${profile.region}.
@@ -93,6 +97,7 @@ export const ConstituencyMap: React.FC<ConstituencyMapProps> = ({ candidates, on
 
   const handleClosePanel = () => {
     setSelectedConstituency(null);
+    setConstituencyProfile(null);
     setAiReport(null);
   };
 
@@ -396,7 +401,7 @@ export const ConstituencyMap: React.FC<ConstituencyMapProps> = ({ candidates, on
             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[50]" 
             onClick={handleClosePanel}
           />
-          <div className="fixed inset-y-0 right-0 w-full md:w-[600px] bg-slate-900 border-l border-slate-700 shadow-2xl z-[51] overflow-y-auto animate-in slide-in-from-right">
+          <div className="fixed inset-y-0 right-0 w-full md:w-[650px] bg-slate-900 border-l border-slate-700 shadow-2xl z-[51] overflow-y-auto animate-in slide-in-from-right">
              <div className="p-8">
                 {/* Header */}
                 <div className="flex justify-between items-start mb-6">
@@ -415,21 +420,80 @@ export const ConstituencyMap: React.FC<ConstituencyMapProps> = ({ candidates, on
 
                 <div className="h-px bg-slate-800 w-full mb-8"></div>
 
+                {/* Socio-Economic & Challenges Section */}
+                {constituencyProfile && (
+                  <div className="mb-8 space-y-6">
+                    {/* Socio-Economic Terrain */}
+                    <div>
+                        <h4 className="text-sm font-bold text-slate-400 uppercase mb-4 flex items-center gap-2">
+                            <Activity size={16} className="text-blue-400" /> Socio-Economic Terrain
+                        </h4>
+                        <div className="grid grid-cols-2 gap-4">
+                           <div className="bg-slate-800 p-4 rounded-lg border border-slate-700 flex items-start gap-3">
+                               <div className="p-2 bg-green-500/10 rounded text-green-400"><Briefcase size={18} /></div>
+                               <div>
+                                   <p className="text-xs text-slate-500 uppercase font-bold">Economy</p>
+                                   <p className="text-sm font-medium text-white">{constituencyProfile.socioEconomic.primaryActivity}</p>
+                               </div>
+                           </div>
+                           <div className="bg-slate-800 p-4 rounded-lg border border-slate-700 flex items-start gap-3">
+                               <div className="p-2 bg-red-500/10 rounded text-red-400"><TrendingDown size={18} /></div>
+                               <div>
+                                   <p className="text-xs text-slate-500 uppercase font-bold">Poverty</p>
+                                   <p className="text-sm font-medium text-white">{constituencyProfile.socioEconomic.povertyIndex}</p>
+                               </div>
+                           </div>
+                           <div className="bg-slate-800 p-4 rounded-lg border border-slate-700 flex items-start gap-3">
+                               <div className="p-2 bg-yellow-500/10 rounded text-yellow-400"><Zap size={18} /></div>
+                               <div>
+                                   <p className="text-xs text-slate-500 uppercase font-bold">Power Access</p>
+                                   <p className="text-sm font-medium text-white">{constituencyProfile.socioEconomic.accessToElectricity}%</p>
+                               </div>
+                           </div>
+                           <div className="bg-slate-800 p-4 rounded-lg border border-slate-700 flex items-start gap-3">
+                               <div className="p-2 bg-blue-500/10 rounded text-blue-400"><BookOpen size={18} /></div>
+                               <div>
+                                   <p className="text-xs text-slate-500 uppercase font-bold">Literacy</p>
+                                   <p className="text-sm font-medium text-white">{constituencyProfile.socioEconomic.literacyRate}%</p>
+                               </div>
+                           </div>
+                        </div>
+                    </div>
+
+                    {/* Key Tactical Challenges */}
+                    <div>
+                        <h4 className="text-sm font-bold text-slate-400 uppercase mb-4 flex items-center gap-2">
+                           <Target size={16} className="text-red-400" /> Key Tactical Challenges
+                        </h4>
+                        <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
+                             <div className="flex flex-wrap gap-2">
+                                {constituencyProfile.campaignStrategy.keyChallenges.map((challenge, idx) => (
+                                    <div key={idx} className="bg-slate-900 border border-slate-600 px-3 py-1.5 rounded text-sm text-slate-200 flex items-center gap-2">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>
+                                        {challenge}
+                                    </div>
+                                ))}
+                             </div>
+                        </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* AI SitRep Section */}
                 <div className="mb-8">
                    <div className="flex items-center gap-3 mb-6">
-                      <div className="p-3 bg-blue-600/20 rounded-lg text-blue-400">
-                         <FileText size={24} />
+                      <div className="p-3 bg-purple-600/20 rounded-lg text-purple-400">
+                         <BrainCircuit size={24} />
                       </div>
                       <div>
-                         <h3 className="text-lg font-bold text-white">Constituency Intelligence Brief</h3>
-                         <p className="text-xs text-blue-400 uppercase tracking-widest font-bold">Deep Dive Analysis</p>
+                         <h3 className="text-lg font-bold text-white">AI Strategic Intelligence</h3>
+                         <p className="text-xs text-purple-400 uppercase tracking-widest font-bold">Deep Dive Analysis</p>
                       </div>
                    </div>
 
                    {loading ? (
                       <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-8 text-center flex flex-col items-center">
-                          <BrainCircuit className="animate-pulse text-blue-500 mb-4" size={32} />
+                          <BrainCircuit className="animate-pulse text-purple-500 mb-4" size={32} />
                           <h4 className="text-white font-bold mb-2">Consulting The Grand Strategist...</h4>
                           <p className="text-slate-500 text-sm">Synthesizing demographics, historical voting patterns, and strategic doctrine.</p>
                       </div>

@@ -1,8 +1,10 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { generateDailyOpEd } from '../services/geminiService';
-import { RefreshCw, Calendar, Share2, Printer, Feather, Quote, Bookmark, Download, Mail, Twitter } from 'lucide-react';
-import { Incident, Candidate } from '../types';
+import { RefreshCw, Calendar, Share2, Printer, Feather, Quote, Bookmark, Download, Mail, Twitter, Archive, Save } from 'lucide-react';
+import { Incident, Candidate, SitRep } from '../types';
+import { saveSitRep, getSitRepHistory } from '../services/firestoreService';
+import { db } from '../firebaseConfig';
 
 declare global {
     interface Window {
@@ -20,15 +22,29 @@ export const DailyOpEd: React.FC<DailyOpEdProps> = ({ incidents, candidates }) =
   const [report, setReport] = useState<{ title: string; content: string; keyTakeaways: string[] } | null>(null);
   const [loading, setLoading] = useState(false);
   const [dateStr, setDateStr] = useState('');
+  const [history, setHistory] = useState<SitRep[]>([]);
+  const [selectedHistoryId, setSelectedHistoryId] = useState<string>('');
+  const [saving, setSaving] = useState(false);
   
   const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Set static time to match the "Daily 4:30am" requirement
+    // Set initial date string
     const today = new Date().toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     setDateStr(today);
+    
+    // Load history if DB connected
+    if (db) {
+        loadHistory();
+    }
+    
     handleGenerate();
   }, []);
+
+  const loadHistory = async () => {
+      const data = await getSitRepHistory();
+      setHistory(data);
+  };
 
   const handleGenerate = async () => {
     setLoading(true);
@@ -40,11 +56,54 @@ export const DailyOpEd: React.FC<DailyOpEdProps> = ({ incidents, candidates }) =
     try {
       const result = await generateDailyOpEd(incidentsSummary, candidatesSummary);
       setReport(result);
+      setSelectedHistoryId(''); // Reset history selection since this is new
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSaveToArchive = async () => {
+      if (!report || !db) return;
+      setSaving(true);
+      try {
+          const sitRepData: SitRep = {
+              date: new Date().toISOString().split('T')[0],
+              title: report.title,
+              content: report.content,
+              keyTakeaways: report.keyTakeaways,
+              timestamp: Date.now()
+          };
+          await saveSitRep(sitRepData);
+          alert("Report archived successfully.");
+          loadHistory(); // Refresh list
+      } catch (e) {
+          console.error(e);
+          alert("Failed to save report.");
+      } finally {
+          setSaving(false);
+      }
+  };
+
+  const handleHistorySelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const id = e.target.value;
+      setSelectedHistoryId(id);
+      if (!id) {
+          // If cleared, maybe regenerate or just keep current? keeping current for now
+          return;
+      }
+      const selected = history.find(h => h.id === id);
+      if (selected) {
+          setReport({
+              title: selected.title,
+              content: selected.content,
+              keyTakeaways: selected.keyTakeaways
+          });
+          // Update display date to match the historical report
+          const reportDate = new Date(selected.date).toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+          setDateStr(reportDate);
+      }
   };
 
   const handlePrint = () => {
@@ -63,16 +122,16 @@ export const DailyOpEd: React.FC<DailyOpEdProps> = ({ incidents, candidates }) =
         // Clone the element to ensure we capture the full height without scrollbars
         const clonedElement = originalElement.cloneNode(true) as HTMLElement;
         
-        // Apply temporary styles to the clone for capture
+        // Apply temporary styles to the clone for capture to ensure full width/height is rendered
         Object.assign(clonedElement.style, {
-            position: 'absolute',
-            top: '-9999px',
-            left: '-9999px',
+            position: 'fixed',
+            top: '-10000px',
+            left: '-10000px',
             width: '1000px', // Fixed width for consistent rendering
             height: 'auto',
             maxHeight: 'none',
             overflow: 'visible',
-            zIndex: '-1'
+            zIndex: '-1000'
         });
         
         document.body.appendChild(clonedElement);
@@ -80,38 +139,26 @@ export const DailyOpEd: React.FC<DailyOpEdProps> = ({ incidents, candidates }) =
         const canvas = await window.html2canvas(clonedElement, { 
             scale: 2,
             useCORS: true,
-            backgroundColor: '#fdfbf7',
-            windowWidth: 1000
+            backgroundColor: '#fdfbf7'
         });
         
         // Clean up
         document.body.removeChild(clonedElement);
         
         const imgData = canvas.toDataURL('image/png');
+        const imgWidth = canvas.width;
+        const imgHeight = canvas.height;
+        
         const { jsPDF } = window.jspdf;
         
-        // A4 dimensions in mm (210 x 297)
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const pageHeight = pdf.internal.pageSize.getHeight();
-        const pageWidth = pdf.internal.pageSize.getWidth();
+        // Create PDF with custom dimensions matching the image to ensure 1 page
+        const pdf = new jsPDF({
+            orientation: imgWidth > imgHeight ? 'l' : 'p',
+            unit: 'px',
+            format: [imgWidth, imgHeight]
+        });
         
-        const imgProps = pdf.getImageProperties(imgData);
-        const pdfHeight = (imgProps.height * pageWidth) / imgProps.width;
-        
-        let heightLeft = pdfHeight;
-        let position = 0;
-
-        // Add first page
-        pdf.addImage(imgData, 'PNG', 0, position, pageWidth, pdfHeight);
-        heightLeft -= pageHeight;
-
-        // Add subsequent pages if content is long
-        while (heightLeft > 0) {
-          position -= pageHeight;
-          pdf.addPage();
-          pdf.addImage(imgData, 'PNG', 0, position, pageWidth, pdfHeight);
-          heightLeft -= pageHeight;
-        }
+        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
         
         pdf.save(`Salus_SitRep_${new Date().toISOString().split('T')[0]}.pdf`);
     } catch (error) {
@@ -168,51 +215,81 @@ export const DailyOpEd: React.FC<DailyOpEdProps> = ({ incidents, candidates }) =
           <p className="text-lg text-slate-400 font-merriweather italic">AI-Generated Strategic Analysis</p>
         </div>
         
-        <div className="flex items-center gap-3 flex-wrap">
-          <button 
-            onClick={handleGenerate} 
-            disabled={loading}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-lg font-medium transition-colors disabled:opacity-50 font-sans shadow-md"
-          >
-            <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
-            {loading ? 'Consulting AI...' : 'Refresh'}
-          </button>
-          
-          <button 
-             onClick={handleDownloadPDF}
-             className="p-2.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 transition-colors shadow-md"
-             title="Download Full PDF"
-          >
-            <Download size={20} />
-          </button>
-          <button 
-             onClick={handlePrint}
-             className="p-2.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 transition-colors shadow-md"
-             title="Print"
-          >
-            <Printer size={20} />
-          </button>
-          <button 
-             onClick={handleEmailReport}
-             className="p-2.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 transition-colors shadow-md"
-             title="Email Report"
-          >
-            <Mail size={20} />
-          </button>
-          <button 
-             onClick={handleTwitterShare}
-             className="p-2.5 bg-[#1DA1F2]/20 hover:bg-[#1DA1F2]/30 text-[#1DA1F2] border border-[#1DA1F2]/50 rounded-lg transition-colors shadow-md"
-             title="Share on Twitter"
-          >
-            <Twitter size={20} />
-          </button>
-          <button 
-             onClick={handleShare}
-             className="p-2.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 transition-colors shadow-md"
-             title="System Share"
-          >
-            <Share2 size={20} />
-          </button>
+        <div className="flex flex-col items-end gap-3">
+            {/* History Selector */}
+            {db && (
+                <div className="flex items-center gap-2 mb-2">
+                    <Archive size={16} className="text-slate-500" />
+                    <select 
+                        value={selectedHistoryId} 
+                        onChange={handleHistorySelect}
+                        className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-1.5 text-sm text-slate-300 focus:border-blue-500 focus:outline-none"
+                    >
+                        <option value="">-- Select Archived Report --</option>
+                        {history.map(h => (
+                            <option key={h.id} value={h.id}>{h.date} - {h.title.substring(0, 30)}...</option>
+                        ))}
+                    </select>
+                </div>
+            )}
+
+            <div className="flex items-center gap-3 flex-wrap justify-end">
+            <button 
+                onClick={handleGenerate} 
+                disabled={loading}
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-lg font-medium transition-colors disabled:opacity-50 font-sans shadow-md"
+            >
+                <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
+                {loading ? 'Consulting AI...' : 'Refresh'}
+            </button>
+
+            {db && report && !selectedHistoryId && (
+                 <button 
+                    onClick={handleSaveToArchive}
+                    disabled={saving}
+                    className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white px-4 py-2.5 rounded-lg font-medium transition-colors disabled:opacity-50 shadow-md"
+                    title="Save current report to database"
+                 >
+                    <Save size={18} /> {saving ? 'Saving...' : 'Archive'}
+                 </button>
+            )}
+            
+            <button 
+                onClick={handleDownloadPDF}
+                className="p-2.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 transition-colors shadow-md"
+                title="Download Full PDF"
+            >
+                <Download size={20} />
+            </button>
+            <button 
+                onClick={handlePrint}
+                className="p-2.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 transition-colors shadow-md"
+                title="Print"
+            >
+                <Printer size={20} />
+            </button>
+            <button 
+                onClick={handleEmailReport}
+                className="p-2.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 transition-colors shadow-md"
+                title="Email Report"
+            >
+                <Mail size={20} />
+            </button>
+            <button 
+                onClick={handleTwitterShare}
+                className="p-2.5 bg-[#1DA1F2]/20 hover:bg-[#1DA1F2]/30 text-[#1DA1F2] border border-[#1DA1F2]/50 rounded-lg transition-colors shadow-md"
+                title="Share on Twitter"
+            >
+                <Twitter size={20} />
+            </button>
+            <button 
+                onClick={handleShare}
+                className="p-2.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 transition-colors shadow-md"
+                title="System Share"
+            >
+                <Share2 size={20} />
+            </button>
+            </div>
         </div>
       </div>
 

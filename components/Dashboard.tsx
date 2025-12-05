@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, 
@@ -244,6 +245,50 @@ const MOCK_CANDIDATES: Candidate[] = [
     imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e2/Mugisha_Muntu.jpg/440px-Mugisha_Muntu.jpg',
     notes: 'Alliance for National Transformation'
   },
+  {
+    id: 'c5',
+    name: 'Kasibante Robert',
+    party: 'Independent',
+    district: 'National',
+    sentimentScore: 45,
+    mentions: 1200,
+    projectedVoteShare: 0.8,
+    imageUrl: '',
+    notes: 'Independent Candidate'
+  },
+  {
+    id: 'c6',
+    name: 'Mabirizi Joseph Elton',
+    party: 'Independent',
+    district: 'National',
+    sentimentScore: 40,
+    mentions: 3500,
+    projectedVoteShare: 0.5,
+    imageUrl: '',
+    notes: 'Lawyer and activist'
+  },
+  {
+    id: 'c7',
+    name: 'Kabinga Frank Bulira',
+    party: 'Independent',
+    district: 'National',
+    sentimentScore: 30,
+    mentions: 800,
+    projectedVoteShare: 0.1,
+    imageUrl: '',
+    notes: 'Independent Candidate'
+  },
+  {
+    id: 'c8',
+    name: 'Mubarak Munyagwa Sserunga',
+    party: 'Independent',
+    district: 'National',
+    sentimentScore: 55,
+    mentions: 4100,
+    projectedVoteShare: 0.8,
+    imageUrl: '',
+    notes: 'Former MP Kawempe South'
+  }
 ];
 
 export const Dashboard: React.FC<DashboardProps> = ({ onReturnToSite }) => {

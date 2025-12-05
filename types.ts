@@ -149,6 +149,15 @@ export interface PresidentialProfile {
   sources: GroundingChunk[];
 }
 
+export interface SitRep {
+  id?: string;
+  date: string;
+  title: string;
+  content: string;
+  keyTakeaways: string[];
+  timestamp: number;
+}
+
 export interface GroundingChunk {
   web?: {
     uri: string;
