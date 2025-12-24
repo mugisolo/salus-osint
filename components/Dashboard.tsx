@@ -1,9 +1,27 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
-  LayoutDashboard, Map as MapIcon, Users, BrainCircuit, Bell, Search, 
-  Menu, ShieldAlert, TrendingUp, Radio, Landmark, LogOut, FileText, 
-  ChevronRight, CheckCircle, AlertTriangle, Table, Database, Lock, 
-  CloudUpload, Loader2, RefreshCw, Globe, Sparkles
+  LayoutDashboard, 
+  Map as MapIcon, 
+  Users, 
+  BrainCircuit, 
+  Bell, 
+  Search, 
+  Menu,
+  ShieldAlert,
+  TrendingUp,
+  Radio,
+  Landmark,
+  LogOut,
+  FileText,
+  ChevronRight,
+  CheckCircle,
+  AlertTriangle,
+  Table,
+  Database,
+  Lock,
+  CloudUpload,
+  Loader2
 } from 'lucide-react';
 import { StatCard } from './StatCard';
 import { ViolenceMap } from './ViolenceMap';
@@ -16,190 +34,279 @@ import { Chatbot } from './Chatbot';
 import { ViewState, Incident, Candidate, ParliamentaryCandidate } from '../types';
 import { PARLIAMENTARY_DATA } from '../data/parliamentaryData';
 import { liveDataService } from '../services/liveDataService';
-import { syncLatestOSINT } from '../services/geminiService';
+// Import Firebase Services
 import { db } from '../firebaseConfig';
 import { 
-  subscribeToIncidents, subscribeToPresidential, subscribeToParliamentary,
-  addIncidentToDb, deleteIncidentFromDb, addPresidentialToDb, 
-  deletePresidentialFromDb, addParliamentaryToDb, deleteParliamentaryFromDb, seedDatabase
+  subscribeToIncidents, 
+  subscribeToPresidential, 
+  subscribeToParliamentary,
+  addIncidentToDb,
+  deleteIncidentFromDb,
+  addPresidentialToDb,
+  deletePresidentialFromDb,
+  addParliamentaryToDb,
+  deleteParliamentaryFromDb,
+  seedDatabase
 } from '../services/firestoreService';
 
 interface DashboardProps {
   onReturnToSite: () => void;
 }
 
+// Helper to generate dynamic dates relative to today
 const getRelativeDate = (daysAgo: number) => {
   const d = new Date();
   d.setDate(d.getDate() - daysAgo);
   return d.toISOString().split('T')[0];
 };
 
-// --- OSINT DATA: JANUARY - FEBRUARY 2025 ONLY ---
+// --- MOCK DATA (Kept for fallback and seeding) ---
 const MOCK_INCIDENTS: Incident[] = [
   { 
-    id: 'inc-2025-01', 
-    date: '2025-02-14',
-    location: 'Kampala CBD (City Square)', 
-    latitude: 0.3142, longitude: 32.5859, 
-    type: 'Protest', fatalities: 0, injuries: 8, 
-    description: 'Youth protest against the dissolution of UCDA and the new coffee regulations. Dispersed by tear gas and water cannons.', 
+    id: '1', 
+    date: getRelativeDate(0), // Today
+    location: 'Kampala Central', 
+    latitude: 0.3476, 
+    longitude: 32.5825, 
+    type: 'Protest', 
+    fatalities: 0, 
+    injuries: 5, 
+    description: 'Opposition rally dispersed near City Square.', 
     verified: true,
     osintReport: {
-      sourceReliability: 'A - Completely Reliable', credibilityScore: 95,
-      verifiedSources: ['NTV Uganda', 'Daily Monitor Live', 'Human Rights Network'],
-      aiAnalysis: 'High-density urban protest. Sentiment analysis of social media shows significant "Coffee Bill" agitation among youth. Logistics suggest decentralized mobilization.',
-      timeline: [{ time: '10:15', event: 'First group converges near Parliament' }, { time: '11:45', event: 'Police engagement initiated' }]
+      sourceReliability: 'B - Usually Reliable',
+      credibilityScore: 85,
+      verifiedSources: ['Daily Monitor Live Feed', 'Kampala Metro Police Twitter'],
+      aiAnalysis: 'Video analysis confirms use of teargas. Crowd density approx 300-400. Geolocation matches City Square landmarks. Sentiment in local WhatsApp groups highly agitated.',
+      timeline: [
+        { time: '10:00', event: 'Crowd begins gathering at City Square' },
+        { time: '10:30', event: 'Police deployment observed on Jinja Road' },
+        { time: '11:15', event: 'Tear gas deployed to disperse crowd' }
+      ]
     }
   },
   { 
-    id: 'inc-2025-02', 
-    date: '2025-02-08',
-    location: 'Wakiso (Entebbe Road)', 
-    latitude: 0.1234, longitude: 32.4567, 
-    type: 'Arrest', fatalities: 0, injuries: 0, 
-    description: 'Pre-emptive detention of three regional NUP coordinators ahead of a planned mobilization tour.', 
+    id: '2', 
+    date: getRelativeDate(1), // Yesterday
+    location: 'Gulu', 
+    latitude: 2.7724, 
+    longitude: 32.2881, 
+    type: 'Violence', 
+    fatalities: 1, 
+    injuries: 3, 
+    description: 'Clash between youth groups in market area.', 
     verified: true,
     osintReport: {
-      sourceReliability: 'B - Usually Reliable', credibilityScore: 92,
-      verifiedSources: ['Official NUP Handle', 'Local Media Hub'],
-      aiAnalysis: 'Part of a broader strategy to disrupt opposition supply lines in the Central Region. No violence reported during arrest.',
-      timeline: [{ time: '04:30', event: 'Simultaneous raids on coordinator residences' }]
+      sourceReliability: 'C - Fairly Reliable',
+      credibilityScore: 60,
+      verifiedSources: ['Local Radio FM Call-in', 'Civil Society Observer'],
+      aiAnalysis: 'Reports indicate factional infighting. One fatality confirmed by hospital admission records cross-referenced with social media obituaries.',
+      timeline: [
+        { time: '14:00', event: 'Heated argument reported at main market' },
+        { time: '14:45', event: 'Physical altercation involving crude weapons' },
+        { time: '15:30', event: 'Police restore order' }
+      ]
     }
   },
   { 
-    id: 'inc-2025-03', 
-    date: '2025-01-28',
-    location: 'Jinja City', 
-    latitude: 0.4479, longitude: 33.2026, 
-    type: 'Violence', fatalities: 1, injuries: 12, 
-    description: 'Clash between rival youth brigades during a PLU (Patriotic League of Uganda) regional launch event.', 
-    verified: true,
-    osintReport: {
-      sourceReliability: 'B - Usually Reliable', credibilityScore: 85,
-      verifiedSources: ['Nile Post', 'Police Statement'],
-      aiAnalysis: 'Intra-political friction escalates to physical violence. Fatal injury confirmed by hospital records. Area remains tense with security patrols.',
-      timeline: [{ time: '15:00', event: 'Heated verbal exchange at rally venue' }, { time: '16:30', event: 'Physical altercation breaks out' }]
-    }
-  },
-  { 
-    id: 'inc-2025-04', 
-    date: '2025-01-15',
-    location: 'Moroto', 
-    latitude: 2.5345, longitude: 34.6666, 
-    type: 'Intimidation', fatalities: 0, injuries: 2, 
-    description: 'Reports of armed personnel intimidating voters at a local council primary election registration center.', 
+    id: '3', 
+    date: getRelativeDate(2), 
+    location: 'Mbarara', 
+    latitude: -0.6072, 
+    longitude: 30.6545, 
+    type: 'Intimidation', 
+    fatalities: 0, 
+    injuries: 0, 
+    description: 'Threats reported at polling station registration center.', 
     verified: false,
     osintReport: {
-      sourceReliability: 'C - Fairly Reliable', credibilityScore: 65,
-      verifiedSources: ['Community Radio Call-in', 'Election Observer Report'],
-      aiAnalysis: 'Unverified field report. Localized intimidation consistent with regional power-struggle patterns. Low impact on national metrics.',
-      timeline: [{ time: '09:00', event: 'Registration center opens' }]
+      sourceReliability: 'D - Not Usually Reliable',
+      credibilityScore: 45,
+      verifiedSources: ['Anonymous Twitter Report'],
+      aiAnalysis: 'Unverified user report. No corroborating visual evidence found in public feeds. Pattern matches historical intimidation tactics in the region.',
+      timeline: [
+        { time: '09:00', event: 'Registration center opens' },
+        { time: '11:20', event: 'Unidentified men reportedly threaten staff' }
+      ]
     }
-  }
+  },
+  { 
+    id: '4', 
+    date: getRelativeDate(0), // Today
+    location: 'Jinja', 
+    latitude: 0.4479, 
+    longitude: 33.2026, 
+    type: 'Arrest', 
+    fatalities: 0, 
+    injuries: 0, 
+    description: 'Local councilor detained during town hall.', 
+    verified: true,
+    osintReport: {
+      sourceReliability: 'A - Completely Reliable',
+      credibilityScore: 95,
+      verifiedSources: ['Official Police Statement', 'NTV Uganda'],
+      aiAnalysis: 'Arrest confirmed. Charges relate to "Inciting Violence". Body cam footage (leaked) suggests peaceful arrest contrary to initial social media rumors of brutality.',
+      timeline: [
+        { time: '16:00', event: 'Councilor addresses gathering' },
+        { time: '16:25', event: 'Police vehicle arrives' },
+        { time: '16:40', event: 'Suspect taken into custody' }
+      ]
+    }
+  },
+  { 
+    id: '5', 
+    date: getRelativeDate(3), 
+    location: 'Arua', 
+    latitude: 3.0303, 
+    longitude: 30.9073, 
+    type: 'Rally', 
+    fatalities: 0, 
+    injuries: 0, 
+    description: 'Peaceful procession by opposition supporters.', 
+    verified: true,
+    osintReport: {
+      sourceReliability: 'B - Usually Reliable',
+      credibilityScore: 80,
+      verifiedSources: ['Local Blogger Stream', 'Observer Network'],
+      aiAnalysis: 'Crowd size estimated 2,000+. No security incidents. Sentiment positive. Geotags confirm route along Arua Avenue.',
+      timeline: [
+        { time: '13:00', event: 'Procession starts' },
+        { time: '15:00', event: 'Speeches at Boma Grounds' }
+      ]
+    }
+  },
+  { 
+    id: '6', 
+    date: getRelativeDate(1), // Yesterday
+    location: 'Masaka', 
+    latitude: -0.3411, 
+    longitude: 31.7361, 
+    type: 'Violence', 
+    fatalities: 0, 
+    injuries: 12, 
+    description: 'Market disruption and tear gas use.', 
+    verified: true,
+    osintReport: {
+      sourceReliability: 'B - Usually Reliable',
+      credibilityScore: 75,
+      verifiedSources: ['Red Cross Incident Log', 'Market Vendor Union'],
+      aiAnalysis: 'High number of injuries due to stampede after tear gas deployment. Hospital intake records match casualty reports.',
+      timeline: [
+        { time: '08:00', event: 'Market opens' },
+        { time: '10:15', event: 'Enforcement officers clash with vendors' },
+        { time: '10:30', event: 'Tear gas deployed' }
+      ]
+    }
+  },
 ];
 
 const MOCK_CANDIDATES: Candidate[] = [
   { 
     id: 'c1', 
-    name: 'Yoweri Tibuhaburwa Kaguta Museveni', 
+    name: 'Yoweri Kaguta Museveni', 
     party: 'NRM', 
     district: 'National', 
-    sentimentScore: 52, 
-    mentions: 48500, 
-    projectedVoteShare: 54.2, 
-    imageUrl: '', 
-    notes: 'Incumbent. Early 2025 focus on PDM wealth creation and stabilizing intra-party PLU dynamics.' 
+    sentimentScore: 65, 
+    mentions: 25400, 
+    projectedVoteShare: 52.1, 
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/Yoweri_Museveni_2015.jpg/440px-Yoweri_Museveni_2015.jpg',
+    notes: 'Incumbent president, seeking 7th term'
   },
   { 
     id: 'c2', 
     name: 'Robert Kyagulanyi Ssentamu (Bobi Wine)', 
     party: 'NUP', 
     district: 'National', 
-    sentimentScore: 69, 
-    mentions: 55000, 
-    projectedVoteShare: 39.1, 
-    imageUrl: '', 
-    notes: 'Lead opposition figure. Intense 2025 mobilization around the Coffee Bill protests and international advocacy.' 
+    sentimentScore: 78, 
+    mentions: 31200, 
+    projectedVoteShare: 39.4, 
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Bobi_Wine_at_voice_of_America_in_2018.png/440px-Bobi_Wine_at_voice_of_America_in_2018.png',
+    notes: 'Main opposition candidate'
   },
   { 
     id: 'c3', 
-    name: 'Mugisha Gregory Muntu Oyera', 
-    party: 'ANT', 
-    district: 'National', 
-    sentimentScore: 58, 
-    mentions: 12500, 
-    projectedVoteShare: 2.4, 
-    imageUrl: '', 
-    notes: 'Focusing on institutional building and moderate voters. Seen as a stabilizer in 2025 coalition talks.' 
-  },
-  { 
-    id: 'c4', 
     name: 'James Nathan Nandala Mafabi', 
     party: 'FDC', 
     district: 'National', 
-    sentimentScore: 46, 
-    mentions: 15800, 
-    projectedVoteShare: 3.1, 
-    imageUrl: '', 
-    notes: 'Managing internal FDC Najjanankumbi vs Katonga rift. Strong base in Eastern region.' 
+    sentimentScore: 48, 
+    mentions: 4200, 
+    projectedVoteShare: 3.8, 
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/9/96/User_icon-cp.png', 
+    notes: 'Forum for Democratic Change'
   },
   { 
-    id: 'c5', 
-    name: "Mubarak Munyagwa Sserunga", 
-    party: 'CMP', 
+    id: 'c4', 
+    name: 'Gregory Mugisha Muntu Oyera', 
+    party: 'ANT', 
     district: 'National', 
-    sentimentScore: 44, 
-    mentions: 8200, 
-    projectedVoteShare: 0.7, 
-    imageUrl: '', 
-    notes: 'Common Man\'s Party leader. High social media visibility through populist rhetoric.' 
-  },
-  { 
-    id: 'c6', 
-    name: 'Elton Joseph Mabirizi', 
-    party: 'CP', 
-    district: 'National', 
-    sentimentScore: 41, 
-    mentions: 4500, 
-    projectedVoteShare: 0.3, 
-    imageUrl: '', 
-    notes: 'Conservative Party standard bearer focusing on cultural heritage and federalism.' 
-  },
-  { 
-    id: 'c7', 
-    name: 'Frank Bulira Kabinga', 
-    party: 'RPP', 
-    district: 'National', 
-    sentimentScore: 39, 
+    sentimentScore: 58, 
     mentions: 3100, 
-    projectedVoteShare: 0.2, 
-    imageUrl: '', 
-    notes: 'Revolutionary People\'s Party. Advocacy for radical socio-economic restructuring.' 
+    projectedVoteShare: 2.5, 
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e2/Mugisha_Muntu.jpg/440px-Mugisha_Muntu.jpg',
+    notes: 'Alliance for National Transformation'
   },
-  { 
-    id: 'c8', 
-    name: 'Robert Kasibante', 
-    party: 'NPP', 
-    district: 'National', 
-    sentimentScore: 43, 
-    mentions: 2900, 
-    projectedVoteShare: 0.1, 
-    imageUrl: '', 
-    notes: 'National Peasants Party. Concentrating on grassroots agricultural reforms and farmer cooperatives.' 
+  {
+    id: 'c5',
+    name: 'Kasibante Robert',
+    party: 'Independent',
+    district: 'National',
+    sentimentScore: 45,
+    mentions: 1200,
+    projectedVoteShare: 0.8,
+    imageUrl: '',
+    notes: 'Independent Candidate'
+  },
+  {
+    id: 'c6',
+    name: 'Mabirizi Joseph Elton',
+    party: 'Independent',
+    district: 'National',
+    sentimentScore: 40,
+    mentions: 3500,
+    projectedVoteShare: 0.5,
+    imageUrl: '',
+    notes: 'Lawyer and activist'
+  },
+  {
+    id: 'c7',
+    name: 'Kabinga Frank Bulira',
+    party: 'Independent',
+    district: 'National',
+    sentimentScore: 30,
+    mentions: 800,
+    projectedVoteShare: 0.1,
+    imageUrl: '',
+    notes: 'Independent Candidate'
+  },
+  {
+    id: 'c8',
+    name: 'Mubarak Munyagwa Sserunga',
+    party: 'Independent',
+    district: 'National',
+    sentimentScore: 55,
+    mentions: 4100,
+    projectedVoteShare: 0.8,
+    imageUrl: '',
+    notes: 'Former MP Kawempe South'
   }
 ];
 
 export const Dashboard: React.FC<DashboardProps> = ({ onReturnToSite }) => {
   const [currentView, setCurrentView] = useState<ViewState>(ViewState.DASHBOARD);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
+  // State for Data
   const [incidents, setIncidents] = useState<Incident[]>(MOCK_INCIDENTS);
   const [presidentialCandidates, setPresidentialCandidates] = useState<Candidate[]>(MOCK_CANDIDATES);
   const [parliamentaryCandidates, setParliamentaryCandidates] = useState<ParliamentaryCandidate[]>(PARLIAMENTARY_DATA);
+
+  // Connection State
   const [isFirestoreConnected, setIsFirestoreConnected] = useState(!!db);
   const [dbError, setDbError] = useState<string | null>(null);
   const [isDbEmpty, setIsDbEmpty] = useState(false);
+  
+  // Seeding State
   const [seedingProgress, setSeedingProgress] = useState<string | null>(null);
-  const [isSyncing, setIsSyncing] = useState(false);
 
   const [stats, setStats] = useState({
     violenceIndex: '0.0',
@@ -209,73 +316,174 @@ export const Dashboard: React.FC<DashboardProps> = ({ onReturnToSite }) => {
     sentimentColor: 'text-slate-200'
   });
 
+  // --- 1. Firestore Subscriptions (Real-Time Data) ---
   useEffect(() => {
-    if (!db) return;
-    const unsubIncidents = subscribeToIncidents(data => { 
-        if (data.length > 0) { 
-            // Filter 2025 only from DB too
-            const freshData = data.filter(d => d.date.startsWith('2025'));
-            if (freshData.length > 0) setIncidents(freshData); 
-            setIsDbEmpty(false); 
-        } 
-    }, err => {}, () => setIsDbEmpty(true));
-    const unsubPresidential = subscribeToPresidential(data => { if (data.length > 0) setPresidentialCandidates(data); });
-    const unsubParliamentary = subscribeToParliamentary(data => { if (data.length > 0) setParliamentaryCandidates(data); });
-    return () => { unsubIncidents(); unsubPresidential(); unsubParliamentary(); };
+    if (!db) {
+        console.warn("Firestore not connected. Using local mock data.");
+        return;
+    }
+
+    const handleDbError = (error: any) => {
+        if (error.code === 'permission-denied') {
+            console.warn("Firestore permission denied. Switching to local mock data.");
+            setIsFirestoreConnected(false); // Switch to local mode
+            setDbError(null); // Do not show banner, just degrade gracefully
+        } else {
+            setDbError(`Database Error: ${error.message}`);
+        }
+    };
+
+    // Subscribe to Incidents
+    const unsubIncidents = subscribeToIncidents(
+        (data) => {
+            if (data.length > 0) {
+                setIncidents(data);
+                setIsFirestoreConnected(true);
+                setIsDbEmpty(false);
+                setDbError(null);
+            }
+        }, 
+        handleDbError,
+        () => setIsDbEmpty(true) // On Empty
+    );
+
+    // Subscribe to Presidential
+    const unsubPresidential = subscribeToPresidential((data) => {
+        if (data.length > 0) setPresidentialCandidates(data);
+    }, handleDbError);
+
+    // Subscribe to Parliamentary
+    const unsubParliamentary = subscribeToParliamentary((data) => {
+        if (data.length > 0) setParliamentaryCandidates(data);
+    }, handleDbError);
+
+    return () => {
+        unsubIncidents();
+        unsubPresidential();
+        unsubParliamentary();
+    };
   }, []);
 
+  // --- 2. Live WebSocket Feed (Augmentation) ---
+  useEffect(() => {
+    const handleRealTimeIncident = (incident: Incident) => {
+      console.log("Salus Stream: New Incident Received", incident);
+      if (db && isFirestoreConnected) {
+          addIncidentToDb(incident).catch(() => {
+              setIncidents(currentIncidents => [incident, ...currentIncidents]);
+          });
+      } else {
+          setIncidents(currentIncidents => [incident, ...currentIncidents]);
+      }
+    };
+    liveDataService.connect(handleRealTimeIncident);
+    return () => { liveDataService.disconnect(handleRealTimeIncident); };
+  }, [isFirestoreConnected]);
+  
+  // --- 3. Stats Calculation ---
   useEffect(() => {
     const targetDate = new Date('2026-01-14T00:00:00');
-    const days = Math.ceil(Math.abs(targetDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+    const today = new Date();
+    const diffTime = Math.abs(targetDate.getTime() - today.getTime());
+    const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    const recentCutoff = new Date();
+    recentCutoff.setDate(recentCutoff.getDate() - 2);
     
-    // Recent = last 30 days of 2025
-    const recentIncidents = incidents.filter(inc => {
-        const diff = new Date().getTime() - new Date(inc.date).getTime();
-        return diff < (30 * 24 * 60 * 60 * 1000) && inc.date.startsWith('2025');
-    });
-    
+    const recentIncidents = incidents.filter(inc => new Date(inc.date) >= recentCutoff);
+    const activeCount = recentIncidents.length;
+
     let totalSeverity = 0;
     incidents.forEach(inc => {
-        let base = 1;
-        if (inc.type === 'Violence') base = 8;
-        else if (inc.type === 'Protest') base = 5;
-        totalSeverity += base + (inc.fatalities * 5) + (inc.injuries * 0.5);
+        let baseScore = 1;
+        if (inc.type === 'Violence') baseScore = 8;
+        if (inc.type === 'Protest') baseScore = 5;
+        if (inc.type === 'Arrest') baseScore = 4;
+        if (inc.type === 'Intimidation') baseScore = 3;
+        totalSeverity += baseScore + (inc.fatalities * 5) + (inc.injuries * 0.5);
     });
-    const vIndex = Math.min(10, (totalSeverity / Math.max(1, incidents.length)) * 1.5).toFixed(1);
+    const rawIndex = (totalSeverity / Math.max(1, incidents.length)) * 1.5;
+    const vIndex = Math.min(10, Math.max(0, rawIndex)).toFixed(1);
 
-    const weightedSentiment = presidentialCandidates.reduce((acc, c) => acc + (c.sentimentScore * (c.projectedVoteShare || 1)), 0) / (presidentialCandidates.reduce((acc, c) => acc + (c.projectedVoteShare || 1), 0) || 1);
-    let sentLabel = weightedSentiment > 60 ? 'Optimistic' : weightedSentiment > 45 ? 'Tense' : 'Volatile';
-    let sentColor = weightedSentiment > 60 ? 'green' : weightedSentiment > 45 ? 'orange' : 'red';
+    const totalVoteShare = presidentialCandidates.reduce((acc, c) => acc + c.projectedVoteShare, 0);
+    const weightedSentiment = presidentialCandidates.reduce((acc, c) => acc + (c.sentimentScore * c.projectedVoteShare), 0) / (totalVoteShare || 1);
+    
+    let sentLabel = 'Neutral';
+    let sentColor = 'purple';
+    if (weightedSentiment < 40) { sentLabel = 'Volatile'; sentColor = 'red'; }
+    else if (weightedSentiment < 55) { sentLabel = 'Tense'; sentColor = 'orange'; }
+    else if (weightedSentiment < 65) { sentLabel = 'Cautious'; sentColor = 'blue'; }
+    else { sentLabel = 'Optimistic'; sentColor = 'green'; }
 
-    setStats({ violenceIndex: vIndex, activeIncidents: recentIncidents.length, daysToElection: days, sentiment: sentLabel, sentimentColor: sentColor });
+    setStats({
+        violenceIndex: vIndex,
+        activeIncidents: activeCount,
+        daysToElection: days,
+        sentiment: sentLabel,
+        sentimentColor: sentColor
+    });
+
   }, [incidents, presidentialCandidates]);
 
-  const handleSyncOSINT = async () => {
-      setIsSyncing(true);
-      try {
-          const result = await syncLatestOSINT();
-          
-          if (result.incidents && result.incidents.length > 0) {
-              // Strictly 2025 filter
-              const freshIncidents = result.incidents.filter(i => i.date.startsWith('2025'));
-              const mergedIncidents = [...freshIncidents, ...incidents].slice(0, 100);
-              setIncidents(mergedIncidents);
-              if (db) freshIncidents.forEach(i => addIncidentToDb(i));
-          }
+  // --- Handlers ---
 
-          if (result.candidates && result.candidates.length > 0) {
-              const updatedCands = presidentialCandidates.map(c => {
-                  const match = result.candidates.find(r => r.name?.includes(c.name) || c.name.includes(r.name || ''));
-                  return match ? { ...c, sentimentScore: match.sentimentScore || c.sentimentScore, mentions: match.mentions || c.mentions } : c;
-              });
-              setPresidentialCandidates(updatedCands);
+  const handleUpdateIncidents = (updatedList: Incident[]) => {
+      if (db && isFirestoreConnected) {
+          if (updatedList.length > incidents.length) {
+              const newItems = updatedList.filter(x => !incidents.includes(x));
+              newItems.forEach(i => addIncidentToDb(i));
+          } else if (updatedList.length < incidents.length) {
+              const deletedIds = incidents.filter(x => !updatedList.find(u => u.id === x.id)).map(x => x.id);
+              deletedIds.forEach(id => deleteIncidentFromDb(id));
           }
-          alert("OSINT Synchronized: 2025 Intelligence Briefing Ready.");
-      } catch (err) {
-          alert("OSINT Sync Interrupted. Check API Key permissions.");
-      } finally {
-          setIsSyncing(false);
+      } else {
+          setIncidents(updatedList);
       }
+  };
+
+  const handleUpdatePresCandidates = (updatedList: Candidate[]) => {
+      if (db && isFirestoreConnected) {
+          if (updatedList.length > presidentialCandidates.length) {
+             const newItems = updatedList.filter(x => !presidentialCandidates.includes(x));
+             newItems.forEach(i => addPresidentialToDb(i));
+          } else if (updatedList.length < presidentialCandidates.length) {
+             const deletedIds = presidentialCandidates.filter(x => !updatedList.find(u => u.id === x.id)).map(x => x.id);
+             deletedIds.forEach(id => deletePresidentialFromDb(id));
+          }
+      } else {
+          setPresidentialCandidates(updatedList);
+      }
+  };
+
+  const handleUpdateParlCandidates = (updatedList: ParliamentaryCandidate[]) => {
+      if (db && isFirestoreConnected) {
+         if (updatedList.length > parliamentaryCandidates.length) {
+             const newItems = updatedList.filter(x => !parliamentaryCandidates.includes(x));
+             newItems.forEach(i => addParliamentaryToDb(i));
+         } else if (updatedList.length < parliamentaryCandidates.length) {
+             const deletedIds = parliamentaryCandidates.filter(x => !updatedList.find(u => u.id === x.id)).map(x => x.id);
+             deletedIds.forEach(id => deleteParliamentaryFromDb(id));
+         }
+      } else {
+          setParliamentaryCandidates(updatedList);
+      }
+  };
+
+  const handleSeed = () => {
+      if (!window.confirm("Initialize Database with data from local files?")) return;
+      
+      setSeedingProgress("Initializing...");
+      seedDatabase(
+          MOCK_INCIDENTS, 
+          MOCK_CANDIDATES, 
+          PARLIAMENTARY_DATA, 
+          (progress) => setSeedingProgress(progress),
+          () => {
+              setSeedingProgress(null);
+              setIsDbEmpty(false);
+              alert("Database seeding complete!");
+          }
+      );
   };
 
   const renderContent = () => {
@@ -283,34 +491,56 @@ export const Dashboard: React.FC<DashboardProps> = ({ onReturnToSite }) => {
       case ViewState.DASHBOARD:
         return (
           <div className="space-y-8 animate-fade-in">
+            {/* Stats Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <StatCard title="Violence Intensity Index" value={stats.violenceIndex} change={Number(stats.violenceIndex) > 6 ? "High Alert" : "Stable"} changeType={Number(stats.violenceIndex) > 6 ? "negative" : "positive"} icon={ShieldAlert} color="red" />
-              <StatCard title="Active Incidents (2025)" value={stats.activeIncidents} change={stats.activeIncidents > 2 ? "Surging" : "Stable"} icon={Bell} color="orange" />
+              <StatCard title="Violence Intensity Index" value={stats.violenceIndex} change={Number(stats.violenceIndex) > 5 ? "High Alert" : "Stable"} changeType={Number(stats.violenceIndex) > 5 ? "negative" : "positive"} icon={ShieldAlert} color="red" />
+              <StatCard title="Active Incidents (48h)" value={stats.activeIncidents} change={stats.activeIncidents > 3 ? "Surge Detected" : "Normal Activity"} changeType={stats.activeIncidents > 3 ? "negative" : "neutral"} icon={Bell} color="orange" />
               <StatCard title="Election Countdown" value={`${stats.daysToElection} Days`} icon={Radio} color="blue" />
-              <StatCard title="Voter Sentiment" value={stats.sentiment} icon={TrendingUp} color={stats.sentimentColor} />
+              <StatCard title="Voter Sentiment" value={stats.sentiment} change="AI Analyzed" changeType="neutral" icon={TrendingUp} color={stats.sentimentColor} />
             </div>
+
+            {/* AI Op-Ed Teaser */}
             <div onClick={() => setCurrentView(ViewState.DAILY_OPED)} className="bg-gradient-to-r from-purple-900/50 to-blue-900/50 border border-purple-500/30 rounded-xl p-6 cursor-pointer hover:border-purple-400 transition-all group relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-3">
+                    <span className="flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-purple-500"></span>
+                    </span>
+                </div>
                 <div className="flex items-center gap-4 relative z-10">
                    <div className="p-3 bg-purple-500/20 rounded-full text-purple-300"><FileText size={24} /></div>
                    <div>
-                      <h3 className="text-lg font-bold text-white group-hover:text-purple-300 transition-colors flex items-center gap-2">Feb 2025 Situation Report <ChevronRight size={18} /></h3>
-                      <h3 className="text-slate-300 text-sm">Forensic analysis of the UCDA coffee bill protests and Jinja PLU mobilization risks.</h3>
+                      <h3 className="text-lg font-bold text-white group-hover:text-purple-300 transition-colors flex items-center gap-2">
+                         Daily Situation Report <ChevronRight size={18} className="opacity-0 group-hover:opacity-100 transition-opacity translate-x-0 group-hover:translate-x-1" />
+                      </h3>
+                      <p className="text-slate-300 text-sm">AI-Generated strategic analysis of today's election trends and stability risks.</p>
                    </div>
                 </div>
             </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2"><ViolenceMap incidents={incidents} onUpdateIncidents={setIncidents} /></div>
+              <div className="lg:col-span-2">
+                <ViolenceMap incidents={incidents} onUpdateIncidents={handleUpdateIncidents} />
+              </div>
               <div className="lg:col-span-1">
                 <div className="bg-slate-800 rounded-xl border border-slate-700 p-8 h-full">
-                  <h3 className="text-xl font-semibold text-white mb-6">2025 Security Feed</h3>
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-xl font-semibold text-white">Live Feed</h3>
+                    <div className="flex items-center gap-1.5 px-2 py-1 bg-green-500/10 border border-green-500/20 rounded text-xs text-green-400 animate-pulse">
+                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div> WS CONNECTED
+                    </div>
+                  </div>
                   <div className="space-y-6">
                     {incidents.slice(0, 4).map(inc => (
                       <div key={inc.id} className="flex gap-4 pb-4 border-b border-slate-700/50 last:border-0">
                         <div className={`w-2.5 h-full min-h-[48px] rounded-full ${inc.type === 'Violence' ? 'bg-red-500' : 'bg-blue-500'}`}></div>
                         <div className="flex-1">
-                          <p className="text-base text-white font-medium">{inc.location}</p>
-                          <p className="text-sm text-slate-400 mt-1 line-clamp-2">{inc.description}</p>
-                          <span className="text-[10px] text-slate-500 uppercase mt-1 block font-bold">{inc.date}</span>
+                          <div className="flex justify-between items-start">
+                             <p className="text-base text-white font-medium">{inc.location}</p>
+                             {inc.verified ? (<div className="flex items-center gap-1 text-green-400"><CheckCircle size={14} /></div>) : (<div className="flex items-center gap-1 text-orange-400"><AlertTriangle size={14} /></div>)}
+                          </div>
+                          <p className="text-sm text-slate-400 mt-1">{inc.description}</p>
+                          <span className="text-xs text-slate-500 uppercase mt-1.5 block font-medium">{inc.date} • {inc.type}</span>
                         </div>
                       </div>
                     ))}
@@ -318,14 +548,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ onReturnToSite }) => {
                 </div>
               </div>
             </div>
-            <CandidateList candidates={presidentialCandidates} onUpdateCandidates={setPresidentialCandidates} />
+            <CandidateList candidates={presidentialCandidates} onUpdateCandidates={handleUpdatePresCandidates} />
           </div>
         );
-      case ViewState.VIOLENCE_MAP: return <div className="h-full flex flex-col gap-8"><div className="bg-slate-800 p-8 rounded-xl border border-slate-700"><h2 className="text-3xl font-bold text-white mb-3">2025 Security Incident Log</h2><p className="text-slate-400">Strict 90-day monitoring window (No 2024 data).</p></div><ViolenceMap incidents={incidents} onUpdateIncidents={setIncidents} fullScreen /></div>;
-      case ViewState.ELECTION_MAP: return <ConstituencyMap candidates={parliamentaryCandidates} onUpdateCandidates={setParliamentaryCandidates} />;
-      case ViewState.CANDIDATES: return <CandidateList candidates={presidentialCandidates} onUpdateCandidates={setPresidentialCandidates} />;
+      case ViewState.VIOLENCE_MAP: return <div className="h-full flex flex-col gap-8"><div className="bg-slate-800 p-8 rounded-xl border border-slate-700 print:hidden"><h2 className="text-3xl font-bold text-white mb-3">Security Incident Log</h2><p className="text-lg text-slate-400">Detailed register of verified and unverified security reports.</p></div><div className="flex-grow min-h-[600px]"><ViolenceMap incidents={incidents} onUpdateIncidents={handleUpdateIncidents} fullScreen /></div></div>;
+      case ViewState.ELECTION_MAP: return <div className="h-full flex flex-col gap-8"><div className="bg-slate-800 p-8 rounded-xl border border-slate-700 print:hidden"><h2 className="text-3xl font-bold text-white mb-3">Constituency Projection Report</h2><p className="text-lg text-slate-400">Aggregated tabular data of projected winners and vote shares.</p></div><div className="flex-grow min-h-[600px]"><ConstituencyMap candidates={parliamentaryCandidates} onUpdateCandidates={handleUpdateParlCandidates} /></div></div>;
+      case ViewState.CANDIDATES: return <div className="space-y-8"><div className="bg-slate-800 p-8 rounded-xl border border-slate-700 flex justify-between items-center print:hidden"><div><h2 className="text-3xl font-bold text-white mb-2">Presidential Performance</h2><p className="text-lg text-slate-400">Sentiment tracking and projection models.</p></div><button className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-lg text-base">Export Report</button></div><CandidateList candidates={presidentialCandidates} onUpdateCandidates={handleUpdatePresCandidates} /></div>;
       case ViewState.ANALYSIS: return <ReportAnalyzer />;
-      case ViewState.PARLIAMENTARY: return <ParliamentaryAnalytics candidates={parliamentaryCandidates} onUpdateCandidates={setParliamentaryCandidates} />;
+      case ViewState.PARLIAMENTARY: return <div className="space-y-8"><div className="bg-slate-800 p-8 rounded-xl border border-slate-700 print:hidden"><h2 className="text-3xl font-bold text-white mb-2">Parliamentary Analytics</h2><p className="text-lg text-slate-400">Comprehensive analysis of 2026 Parliamentary Nominations.</p></div><ParliamentaryAnalytics candidates={parliamentaryCandidates} onUpdateCandidates={handleUpdateParlCandidates} /></div>;
       case ViewState.DAILY_OPED: return <DailyOpEd incidents={incidents} candidates={presidentialCandidates} />;
       default: return <div>Page not found</div>;
     }
@@ -333,38 +563,38 @@ export const Dashboard: React.FC<DashboardProps> = ({ onReturnToSite }) => {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 flex font-sans selection:bg-blue-500/30 relative">
-      {isSyncing && (
-          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[60] flex flex-col items-center justify-center text-center p-6">
-              <div className="relative mb-8">
-                  <div className="w-24 h-24 border-4 border-slate-800 border-t-blue-500 rounded-full animate-spin"></div>
-                  <Globe className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-blue-500 animate-pulse" size={40} />
-              </div>
-              <h2 className="text-3xl font-bold text-white mb-2 uppercase tracking-tighter">2025 OSINT Core Active</h2>
-              <div className="space-y-2 max-w-md">
-                <p className="text-blue-400 font-mono text-xs animate-pulse tracking-widest">CRAWLING FEB 2025 NEWS FEEDS...</p>
-                <p className="text-purple-400 font-mono text-xs animate-pulse delay-75 tracking-widest">FILTERING OUT 2024 ARCHIVES...</p>
-                <p className="text-green-400 font-mono text-xs animate-pulse delay-150 tracking-widest">MAPPING RECENT COFFEE BILL PROTESTS...</p>
-              </div>
-          </div>
-      )}
-
       <aside className={`fixed inset-y-0 left-0 z-50 w-72 bg-slate-900 border-r border-slate-800 transform transition-transform duration-300 lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} print:hidden`}>
         <div className="h-20 flex items-center px-8 border-b border-slate-800">
-          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center mr-4"><span className="font-bold text-white text-lg">S</span></div>
+          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center mr-4">
+            <span className="font-bold text-white text-lg">S</span>
+          </div>
           <span className="font-bold text-2xl tracking-tight text-white">SALUS</span>
         </div>
         <nav className="p-6 space-y-2">
-          {[{v: ViewState.DASHBOARD, l: '2025 Dashboard', i: LayoutDashboard}, {v: ViewState.VIOLENCE_MAP, l: '2025 Incident Log', i: Table}, {v: ViewState.ELECTION_MAP, l: 'Constituency Data', i: Table}, {v: ViewState.CANDIDATES, l: 'Presidential', i: Users}, {v: ViewState.PARLIAMENTARY, l: 'Parliamentary', i: Landmark}, {v: ViewState.DAILY_OPED, l: '2025 SitRep', i: FileText}, {v: ViewState.ANALYSIS, l: 'Political Intel', i: BrainCircuit}].map(item => (
+          {[{v: ViewState.DASHBOARD, l: 'Dashboard', i: LayoutDashboard}, {v: ViewState.VIOLENCE_MAP, l: 'Violence Logs', i: Table}, {v: ViewState.ELECTION_MAP, l: 'Constituency Data', i: Table}, {v: ViewState.CANDIDATES, l: 'Presidential', i: Users}, {v: ViewState.PARLIAMENTARY, l: 'Parliamentary', i: Landmark}, {v: ViewState.DAILY_OPED, l: 'Daily SitRep', i: FileText}, {v: ViewState.ANALYSIS, l: 'Political Intel', i: BrainCircuit}].map(item => (
              <button key={item.v} onClick={() => { setCurrentView(item.v); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-lg transition-colors ${currentView === item.v ? 'bg-blue-600/10 text-blue-400 border border-blue-600/20' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'}`}>
                 <item.i size={22} /> <span className="font-medium text-base">{item.l}</span>
              </button>
           ))}
         </nav>
         <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-slate-800">
-           <button onClick={handleSyncOSINT} className="w-full mb-4 flex items-center justify-center gap-3 px-4 py-3 bg-blue-600/20 text-blue-400 border border-blue-600/30 rounded-lg hover:bg-blue-600/30 transition-all font-bold text-xs uppercase tracking-widest">
-              <RefreshCw size={14} className={isSyncing ? "animate-spin" : ""} /> Refresh 2025 Feed
-           </button>
-           <button onClick={onReturnToSite} className="w-full flex items-center gap-4 px-5 py-4 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"><LogOut size={20} /><span className="font-medium text-base">Exit Dashboard</span></button>
+          <div className="mb-4 space-y-2">
+              <div className={`flex items-center gap-2 text-xs font-bold uppercase ${dbError ? 'text-red-400' : isFirestoreConnected ? 'text-green-400' : 'text-orange-400'}`}>
+                 <Database size={12} /> {dbError ? 'Connection Error' : isFirestoreConnected ? (isDbEmpty ? 'Connected (Empty)' : 'Connected to Cloud') : 'Local Storage Mode'}
+              </div>
+              
+              {db && !seedingProgress && (
+                  <button onClick={handleSeed} className={`w-full text-xs border py-2 rounded transition-colors flex items-center justify-center gap-2 ${isDbEmpty ? 'bg-green-600/20 text-green-400 border-green-500/50 hover:bg-green-600/30' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}`}>
+                     <CloudUpload size={12} /> {isDbEmpty ? 'Seed Empty Database' : 'Re-Upload Data'}
+                  </button>
+              )}
+              {seedingProgress && (
+                  <div className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs text-blue-400 flex items-center gap-2">
+                      <Loader2 size={12} className="animate-spin" /> {seedingProgress}
+                  </div>
+              )}
+          </div>
+           <button onClick={onReturnToSite} className="w-full flex items-center gap-4 px-5 py-4 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white mb-4 transition-colors"><LogOut size={20} /><span className="font-medium text-base">Exit Dashboard</span></button>
         </div>
       </aside>
       <div className="flex-1 flex flex-col lg:ml-72 transition-all duration-300 print:ml-0 print:w-full">
@@ -373,16 +603,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ onReturnToSite }) => {
             <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="lg:hidden text-slate-400 hover:text-white"><Menu size={28} /></button>
             <h1 className="text-xl font-semibold text-white hidden sm:block">Political Intelligence Dashboard</h1>
           </div>
-          <div className="flex items-center gap-6">
-             <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded text-[10px] font-bold text-blue-400 uppercase tracking-widest animate-pulse">
-                <Globe size={12} /> 2025 FEED ACTIVE
-             </div>
-             <button className="relative text-slate-400 hover:text-white"><Bell size={24} /><span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full"></span></button>
-          </div>
+          <div className="flex items-center gap-6"><div className="relative hidden md:block"><Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500" size={18} /><input type="text" placeholder="Search..." className="bg-slate-800 border border-slate-700 text-base rounded-full pl-12 pr-6 py-2 text-slate-200 focus:outline-none focus:border-blue-500 w-72" /></div><button className="relative text-slate-400 hover:text-white transition-colors"><Bell size={24} /><span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full"></span></button></div>
         </header>
+        {dbError && (<div className="bg-red-500/10 border-b border-red-500/20 p-4 flex items-center justify-center gap-3 animate-in slide-in-from-top text-center print:hidden"><Lock className="text-red-400" size={20} /><span className="text-red-300 text-sm font-medium">{dbError}</span></div>)}
         <main className="p-8 flex-1 overflow-y-auto print:p-0"><div className="max-w-7xl mx-auto h-full print:max-w-none">{renderContent()}</div></main>
       </div>
-      <Chatbot />
+      <div className="print:hidden chatbot-container"><Chatbot /></div>
       {isMobileMenuOpen && (<div className="fixed inset-0 bg-black/50 z-40 lg:hidden print:hidden" onClick={() => setIsMobileMenuOpen(false)}></div>)}
     </div>
   );

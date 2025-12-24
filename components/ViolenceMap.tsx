@@ -1,7 +1,8 @@
 
 import React, { useRef, useState } from 'react';
 import { Incident } from '../types';
-import { AlertTriangle, CheckCircle, Clock, MapPin, FileText, ArrowUpRight, Plus, Upload, Trash2, Shield, Lock, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Clock, MapPin, FileText, ArrowUpRight, Plus, Upload, Trash2, Shield, Lock, X, Search, Calendar, Database } from 'lucide-react';
+import { searchIncidents } from '../services/firestoreService';
 
 interface ViolenceMapProps {
   incidents: Incident[];
@@ -13,6 +14,13 @@ export const ViolenceMap: React.FC<ViolenceMapProps> = ({ incidents, onUpdateInc
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Search State
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [searchLocation, setSearchLocation] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [isHistoricalView, setIsHistoricalView] = useState(false);
   
   const [newIncident, setNewIncident] = useState<Partial<Incident>>({
     date: new Date().toISOString().split('T')[0],
@@ -28,6 +36,34 @@ export const ViolenceMap: React.FC<ViolenceMapProps> = ({ incidents, onUpdateInc
     if (onUpdateIncidents && window.confirm('Delete this incident report?')) {
         onUpdateIncidents(incidents.filter(i => i.id !== id));
     }
+  };
+
+  const handleSearch = async () => {
+      setIsSearching(true);
+      try {
+          const results = await searchIncidents(startDate, endDate, searchLocation);
+          if (onUpdateIncidents) {
+              onUpdateIncidents(results);
+              setIsHistoricalView(true);
+          }
+      } catch (error) {
+          console.error("Search failed", error);
+      } finally {
+          setIsSearching(false);
+      }
+  };
+
+  const clearSearch = () => {
+      setStartDate('');
+      setEndDate('');
+      setSearchLocation('');
+      setIsHistoricalView(false);
+      // Note: Ideally we would trigger a re-fetch of live data here, 
+      // but the parent component subscription handles the "live" state if we just reset. 
+      // However, onUpdateIncidents replaces the whole list. 
+      // To properly reset to live, we might need a "reset" prop or method, 
+      // but for now, the user can refresh or we just leave the historical data until new live data arrives.
+      alert("Please refresh the dashboard to return to the Live Feed.");
   };
 
   const handleAdd = () => {
@@ -107,56 +143,105 @@ export const ViolenceMap: React.FC<ViolenceMapProps> = ({ incidents, onUpdateInc
 
   return (
     <div className={`bg-slate-800 rounded-xl border border-slate-700 overflow-hidden flex flex-col ${fullScreen ? 'h-full' : 'h-[600px]'}`}>
-      <div className="p-6 border-b border-slate-700 flex justify-between items-center bg-slate-900/50">
-        <div>
-           <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <FileText className="text-blue-400" size={20} />
-              Security Incident Log
-           </h3>
-           <p className="text-sm text-slate-400 mt-1">
-             Documented political violence and unrest events.
-           </p>
-        </div>
-        
-        <div className="flex items-center gap-3">
-            {fullScreen && onUpdateIncidents && (
-                <>
-                    {isAdminMode && (
-                        <div className="flex items-center gap-2 animate-fade-in mr-2">
-                            <button 
-                                onClick={() => setIsAddModalOpen(true)}
-                                className="bg-green-600 hover:bg-green-500 text-white px-2 py-1.5 rounded text-xs font-medium flex items-center gap-1 transition-colors"
-                            >
-                                <Plus size={14} /> Add
-                            </button>
-                            <button 
-                                onClick={handleBulkUploadClick}
-                                className="bg-slate-700 hover:bg-slate-600 text-slate-200 px-2 py-1.5 rounded text-xs font-medium flex items-center gap-1 transition-colors"
-                            >
-                                <Upload size={14} /> Import
-                                <input 
-                                    type="file" 
-                                    ref={fileInputRef} 
-                                    onChange={handleFileChange} 
-                                    accept=".csv" 
-                                    className="hidden" 
-                                />
-                            </button>
-                        </div>
-                    )}
-                    <button
-                        onClick={() => setIsAdminMode(!isAdminMode)}
-                        className={`p-1.5 rounded transition-colors ${isAdminMode ? 'bg-red-500/20 text-red-400' : 'text-slate-500 hover:text-slate-300'}`}
-                        title="Toggle Admin Mode"
-                    >
-                        {isAdminMode ? <Shield size={16} /> : <Lock size={16} />}
-                    </button>
-                </>
-            )}
-            <div className="text-xs font-mono text-slate-500 bg-slate-800 px-3 py-1 rounded border border-slate-700">
-            LIVE FEED
+      <div className="p-6 border-b border-slate-700 flex flex-col gap-4 bg-slate-900/50">
+        <div className="flex justify-between items-center">
+            <div>
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <FileText className="text-blue-400" size={20} />
+                Security Incident Log
+            </h3>
+            <p className="text-sm text-slate-400 mt-1">
+                Documented political violence and unrest events.
+            </p>
+            </div>
+            
+            <div className="flex items-center gap-3">
+                {fullScreen && onUpdateIncidents && (
+                    <>
+                        {isAdminMode && (
+                            <div className="flex items-center gap-2 animate-fade-in mr-2">
+                                <button 
+                                    onClick={() => setIsAddModalOpen(true)}
+                                    className="bg-green-600 hover:bg-green-500 text-white px-2 py-1.5 rounded text-xs font-medium flex items-center gap-1 transition-colors"
+                                >
+                                    <Plus size={14} /> Add
+                                </button>
+                                <button 
+                                    onClick={handleBulkUploadClick}
+                                    className="bg-slate-700 hover:bg-slate-600 text-slate-200 px-2 py-1.5 rounded text-xs font-medium flex items-center gap-1 transition-colors"
+                                >
+                                    <Upload size={14} /> Import
+                                    <input 
+                                        type="file" 
+                                        ref={fileInputRef} 
+                                        onChange={handleFileChange} 
+                                        accept=".csv" 
+                                        className="hidden" 
+                                    />
+                                </button>
+                            </div>
+                        )}
+                        <button
+                            onClick={() => setIsAdminMode(!isAdminMode)}
+                            className={`p-1.5 rounded transition-colors ${isAdminMode ? 'bg-red-500/20 text-red-400' : 'text-slate-500 hover:text-slate-300'}`}
+                            title="Toggle Admin Mode"
+                        >
+                            {isAdminMode ? <Shield size={16} /> : <Lock size={16} />}
+                        </button>
+                    </>
+                )}
+                <div className={`text-xs font-mono px-3 py-1 rounded border ${isHistoricalView ? 'bg-orange-500/10 text-orange-400 border-orange-500/30' : 'bg-green-500/10 text-green-400 border-green-500/30'}`}>
+                    {isHistoricalView ? 'HISTORICAL ARCHIVE' : 'LIVE FEED'}
+                </div>
             </div>
         </div>
+
+        {/* Historical Search Bar */}
+        {fullScreen && (
+            <div className="flex flex-wrap items-center gap-2 bg-slate-800 p-3 rounded-lg border border-slate-700">
+                <div className="flex items-center gap-2">
+                    <Calendar size={14} className="text-slate-500" />
+                    <input 
+                        type="date" 
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="bg-slate-900 border border-slate-600 rounded px-2 py-1 text-xs text-white focus:border-blue-500 outline-none"
+                    />
+                    <span className="text-slate-500 text-xs">to</span>
+                    <input 
+                        type="date" 
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="bg-slate-900 border border-slate-600 rounded px-2 py-1 text-xs text-white focus:border-blue-500 outline-none"
+                    />
+                </div>
+                <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+                    <Search size={14} className="text-slate-500" />
+                    <input 
+                        type="text" 
+                        placeholder="Search location or keywords..." 
+                        value={searchLocation}
+                        onChange={(e) => setSearchLocation(e.target.value)}
+                        className="bg-slate-900 border border-slate-600 rounded px-2 py-1 text-xs text-white focus:border-blue-500 outline-none w-full"
+                    />
+                </div>
+                <button 
+                    onClick={handleSearch}
+                    disabled={isSearching}
+                    className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 disabled:opacity-50"
+                >
+                    {isSearching ? 'Searching...' : <><Database size={12} /> Search DB</>}
+                </button>
+                {isHistoricalView && (
+                    <button 
+                        onClick={clearSearch}
+                        className="text-slate-400 hover:text-white px-2 py-1 text-xs underline"
+                    >
+                        Reset to Live
+                    </button>
+                )}
+            </div>
+        )}
       </div>
 
       <div className="overflow-x-auto flex-grow">
@@ -261,7 +346,7 @@ export const ViolenceMap: React.FC<ViolenceMapProps> = ({ incidents, onUpdateInc
         </table>
       </div>
       <div className="p-4 border-t border-slate-700 bg-slate-900/30 text-xs text-slate-500 flex justify-between items-center">
-          <span>Showing {incidents.length} recent incidents</span>
+          <span>Showing {incidents.length} records • {isHistoricalView ? 'Archive Mode' : 'Live Mode'}</span>
           <button className="text-blue-400 hover:text-blue-300 flex items-center gap-1 font-medium transition-colors">
              Export Log <ArrowUpRight size={14} />
           </button>

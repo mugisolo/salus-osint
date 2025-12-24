@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { generateDeepMindAnalysis } from '../services/geminiService';
 import { Sparkles, BrainCircuit, Send, User, Quote, Scroll, History, BookOpen, Printer, Download, Share2, Mail, Twitter, Facebook, Linkedin } from 'lucide-react';
@@ -62,16 +63,18 @@ export const ReportAnalyzer: React.FC = () => {
         const clonedElement = originalElement.cloneNode(true) as HTMLElement;
         
         // Setup clone styles for full capture - Force white background and standardized width
+        // We set fixed width to ensure consistency across screens
         Object.assign(clonedElement.style, {
             position: 'fixed',
             top: '-10000px',
             left: '-10000px',
-            width: '1000px', // Standardize width for consistent PDF
+            width: '1000px', 
             height: 'auto',
             overflow: 'visible',
             zIndex: '-1000',
             backgroundColor: '#ffffff',
-            padding: '40px'
+            padding: '40px',
+            color: '#000000' // Force text color for print
         });
         
         document.body.appendChild(clonedElement);
@@ -93,7 +96,8 @@ export const ReportAnalyzer: React.FC = () => {
         
         const { jsPDF } = window.jspdf;
         
-        // One page PDF matching content dimensions exactly (Digital Scroll format)
+        // Create PDF with dimensions matching the captured image exactly (Digital Scroll Format)
+        // This avoids page breaks and ensures the layout matches the web view precisely.
         const pdf = new jsPDF({
             orientation: imgWidth > imgHeight ? 'l' : 'p',
             unit: 'px',
@@ -217,8 +221,8 @@ export const ReportAnalyzer: React.FC = () => {
                     <BrainCircuit className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-purple-500 animate-pulse" size={40} />
                 </div>
                 <div>
-                   <h3 className="text-2xl font-bold text-white mb-2">Synthesizing Strategic Doctrine...</h3>
-                   <p className="text-slate-400 text-lg">Consulting The Art of War, The Arthashastra, and Revolutionary Diaries.</p>
+                   <h3 className="text-2xl font-bold text-white mb-2">Mugi-Solo is consulting the Council...</h3>
+                   <p className="text-slate-400 text-lg">Synthesizing Strategic Doctrine from The Art of War, The Arthashastra, and Revolutionary Diaries.</p>
                    <div className="flex justify-center gap-4 mt-8">
                        <span className="text-xs bg-slate-900 px-3 py-1.5 rounded text-slate-500 animate-pulse border border-slate-800">Analyzing Context</span>
                        <span className="text-xs bg-slate-900 px-3 py-1.5 rounded text-slate-500 animate-pulse delay-75 border border-slate-800">Applying Ideologies</span>
@@ -235,7 +239,7 @@ export const ReportAnalyzer: React.FC = () => {
                         className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors text-sm font-medium"
                         title="Send report to analysis@salusinternational.net"
                     >
-                        <Mail size={16} /> Email Report
+                        <Mail size={16} /> Email
                     </button>
                     <div className="flex items-center gap-1 bg-slate-700 rounded-lg p-1">
                          <button 
@@ -338,7 +342,7 @@ export const ReportAnalyzer: React.FC = () => {
                                 Voices from the Council
                             </h3>
                             
-                            {report.councilVoices?.map((voice, idx) => (
+                            {report.councilVoices.map((voice, idx) => (
                                 <div key={idx} className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow relative group break-inside-avoid">
                                     <div className="absolute -left-1 top-6 w-1 h-12 bg-purple-600 rounded-r opacity-0 group-hover:opacity-100 transition-opacity"></div>
                                     <div className="flex items-center gap-2 mb-3">

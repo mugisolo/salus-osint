@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef } from 'react';
 import { generateDailyOpEd } from '../services/geminiService';
 import { RefreshCw, Calendar, Share2, Printer, Feather, Quote, Bookmark, Download, Mail, Twitter, Archive, Save } from 'lucide-react';
@@ -41,13 +42,8 @@ export const DailyOpEd: React.FC<DailyOpEdProps> = ({ incidents, candidates }) =
   }, []);
 
   const loadHistory = async () => {
-      try {
-          const data = await getSitRepHistory();
-          setHistory(Array.isArray(data) ? data : []);
-      } catch (err) {
-          console.warn("Could not load historical SitReps. Continuing with current session data.");
-          setHistory([]);
-      }
+      const data = await getSitRepHistory();
+      setHistory(data);
   };
 
   const handleGenerate = async () => {
@@ -76,7 +72,7 @@ export const DailyOpEd: React.FC<DailyOpEdProps> = ({ incidents, candidates }) =
               date: new Date().toISOString().split('T')[0],
               title: report.title,
               content: report.content,
-              keyTakeaways: report.keyTakeaways || [],
+              keyTakeaways: report.keyTakeaways,
               timestamp: Date.now()
           };
           await saveSitRep(sitRepData);
@@ -93,15 +89,18 @@ export const DailyOpEd: React.FC<DailyOpEdProps> = ({ incidents, candidates }) =
   const handleHistorySelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
       const id = e.target.value;
       setSelectedHistoryId(id);
-      if (!id) return;
-
+      if (!id) {
+          // If cleared, maybe regenerate or just keep current? keeping current for now
+          return;
+      }
       const selected = history.find(h => h.id === id);
       if (selected) {
           setReport({
               title: selected.title,
               content: selected.content,
-              keyTakeaways: Array.isArray(selected.keyTakeaways) ? selected.keyTakeaways : []
+              keyTakeaways: selected.keyTakeaways
           });
+          // Update display date to match the historical report
           const reportDate = new Date(selected.date).toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
           setDateStr(reportDate);
       }
@@ -119,13 +118,16 @@ export const DailyOpEd: React.FC<DailyOpEdProps> = ({ incidents, candidates }) =
 
     try {
         const originalElement = contentRef.current;
+        
+        // Clone the element to ensure we capture the full height without scrollbars
         const clonedElement = originalElement.cloneNode(true) as HTMLElement;
         
+        // Apply temporary styles to the clone for capture to ensure full width/height is rendered
         Object.assign(clonedElement.style, {
             position: 'fixed',
             top: '-10000px',
             left: '-10000px',
-            width: '1000px',
+            width: '1000px', // Fixed width for consistent rendering
             height: 'auto',
             maxHeight: 'none',
             overflow: 'visible',
@@ -140,12 +142,16 @@ export const DailyOpEd: React.FC<DailyOpEdProps> = ({ incidents, candidates }) =
             backgroundColor: '#fdfbf7'
         });
         
+        // Clean up
         document.body.removeChild(clonedElement);
+        
         const imgData = canvas.toDataURL('image/png');
         const imgWidth = canvas.width;
         const imgHeight = canvas.height;
+        
         const { jsPDF } = window.jspdf;
         
+        // Create PDF with custom dimensions matching the image to ensure 1 page
         const pdf = new jsPDF({
             orientation: imgWidth > imgHeight ? 'l' : 'p',
             unit: 'px',
@@ -153,6 +159,7 @@ export const DailyOpEd: React.FC<DailyOpEdProps> = ({ incidents, candidates }) =
         });
         
         pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+        
         pdf.save(`Salus_SitRep_${new Date().toISOString().split('T')[0]}.pdf`);
     } catch (error) {
         console.error("PDF generation failed:", error);
@@ -162,12 +169,11 @@ export const DailyOpEd: React.FC<DailyOpEdProps> = ({ incidents, candidates }) =
 
   const handleEmailReport = () => {
     if (!report) return;
-    const takeaways = report.keyTakeaways?.map(t => `- ${t}`).join('\n') || "No takeaways provided.";
     const subject = encodeURIComponent(`Salus Daily SitRep: ${report.title}`);
     const body = encodeURIComponent(
         `DAILY SITUATION REPORT\nDate: ${dateStr}\n\n` +
         `TITLE: ${report.title}\n\n` +
-        `KEY TAKEAWAYS:\n${takeaways}\n\n` +
+        `KEY TAKEAWAYS:\n${report.keyTakeaways.map(t => `- ${t}`).join('\n')}\n\n` +
         `Access full dashboard: ${window.location.href}`
     );
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
@@ -211,7 +217,7 @@ export const DailyOpEd: React.FC<DailyOpEdProps> = ({ incidents, candidates }) =
         
         <div className="flex flex-col items-end gap-3">
             {/* History Selector */}
-            {db && history.length > 0 && (
+            {db && (
                 <div className="flex items-center gap-2 mb-2">
                     <Archive size={16} className="text-slate-500" />
                     <select 
@@ -306,7 +312,7 @@ export const DailyOpEd: React.FC<DailyOpEdProps> = ({ incidents, candidates }) =
                         Executive Summary
                     </h4>
                     <div className="space-y-8">
-                        {report.keyTakeaways?.map((point, idx) => (
+                        {report.keyTakeaways.map((point, idx) => (
                             <div key={idx} className="group">
                                 <Quote size={20} className="text-slate-300 mb-2 group-hover:text-purple-400 transition-colors print:text-slate-800" />
                                 <p className="font-merriweather text-slate-700 text-sm leading-relaxed italic">
@@ -345,7 +351,7 @@ export const DailyOpEd: React.FC<DailyOpEdProps> = ({ incidents, candidates }) =
                         {report.title}
                     </h1>
 
-                    {/* Content */}
+                    {/* Dropcap & Content */}
                     <div 
                         className="prose prose-lg prose-slate font-merriweather text-slate-800 max-w-none
                             prose-p:leading-8 prose-p:mb-6 prose-p:text-[1.1rem]
