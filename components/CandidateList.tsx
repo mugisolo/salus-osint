@@ -1,4 +1,3 @@
-
 import React, { useRef, useState } from 'react';
 import { Candidate, PresidentialProfile } from '../types';
 import { analyzePresidentialCandidate } from '../services/geminiService';
@@ -6,7 +5,7 @@ import {
   TrendingUp, TrendingDown, MessageCircle, X, Globe, 
   FileText, ExternalLink, Newspaper, BrainCircuit, 
   Lock, Target, Crosshair, Heart, GraduationCap, 
-  AlertTriangle, Activity, History, Plus, Upload, Trash2, Shield, Search, User
+  AlertTriangle, Activity, History, Plus, Upload, Trash2, Shield, Search, User, Fingerprint, CreditCard, Star
 } from 'lucide-react';
 
 interface CandidateListProps {
@@ -381,23 +380,33 @@ export const CandidateList: React.FC<CandidateListProps> = ({ candidates, onUpda
                 <div className="animate-fade-in space-y-10">
                    
                    {/* --- AI GRAND STRATEGIST SECTION --- */}
-                  <div className="bg-slate-900 rounded-xl border border-purple-500/40 shadow-[0_0_15px_rgba(168,85,247,0.15)] overflow-hidden relative">
-                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-blue-500 to-purple-500"></div>
-                     <div className="p-6">
-                        <div className="flex items-center gap-3 mb-5">
-                            <div className="p-3 bg-purple-500/20 rounded-lg text-purple-300">
-                              <BrainCircuit size={24} />
-                            </div>
-                            <div>
-                               <h3 className="text-lg font-bold text-white uppercase tracking-wide">The Grand Strategist Core</h3>
-                               <p className="text-xs text-purple-300/70 font-medium">Logic: Sun Tzu • Alexander • Napoleon • Clausewitz • Boyd • Moses</p>
+                  <div className="bg-gradient-to-br from-slate-900 to-purple-900/20 rounded-xl border border-purple-500/50 shadow-[0_0_25px_rgba(168,85,247,0.1)] overflow-hidden relative">
+                     <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-purple-500 via-amber-400 to-purple-500 animate-pulse"></div>
+                     <div className="absolute -right-10 -top-10 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl"></div>
+                     
+                     <div className="p-8 relative z-10">
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-3">
+                                <div className="p-3 bg-purple-500/20 rounded-xl text-purple-300 border border-purple-500/30 shadow-inner">
+                                <BrainCircuit size={28} />
+                                </div>
+                                <div>
+                                <h3 className="text-xl font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                                    The Grand Strategist Core
+                                    <Star size={16} className="text-yellow-400 fill-yellow-400 animate-pulse" />
+                                </h3>
+                                <span className="px-2 py-0.5 bg-purple-500/20 text-purple-300 text-[10px] rounded font-bold border border-purple-500/30">
+                                    AI GENERATED STRATEGY
+                                </span>
+                                </div>
                             </div>
                         </div>
 
-                        <div className="bg-purple-900/10 rounded-lg p-6 border border-purple-500/20">
-                            <div className="prose prose-invert prose-sm max-w-none">
-                                <div className="text-slate-200 text-lg leading-relaxed whitespace-pre-line font-serif italic">
-                                   "{profile.campaignStrategy.grandStrategy}"
+                        <div className="bg-black/30 rounded-xl p-8 border border-purple-500/20 backdrop-blur-sm relative overflow-hidden">
+                            <div className="absolute top-0 left-0 w-1 h-full bg-purple-500"></div>
+                            <div className="prose prose-invert prose-lg max-w-none">
+                                <div className="text-slate-200 leading-relaxed whitespace-pre-line font-serif italic pl-4">
+                                   "{profile.campaignStrategy?.grandStrategy || "Analysis pending."}"
                                 </div>
                             </div>
                         </div>
@@ -408,20 +417,20 @@ export const CandidateList: React.FC<CandidateListProps> = ({ candidates, onUpda
                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="bg-slate-800 p-5 rounded-lg border border-slate-700">
                           <p className="text-sm text-slate-400 uppercase font-bold mb-2">Electorate</p>
-                          <p className="text-2xl font-bold text-white">{profile.nationalOverview.totalRegisteredVoters}</p>
-                          <p className="text-sm text-slate-500 mt-1">{profile.nationalOverview.youthDemographic}</p>
+                          <p className="text-2xl font-bold text-white">{profile.nationalOverview?.totalRegisteredVoters || "Unknown"}</p>
+                          <p className="text-sm text-slate-500 mt-1">{profile.nationalOverview?.youthDemographic || ""}</p>
                       </div>
                       <div className="bg-slate-800 p-5 rounded-lg border border-slate-700">
                           <p className="text-sm text-slate-400 uppercase font-bold mb-2">Key Battlegrounds</p>
                           <div className="flex flex-wrap gap-2">
-                             {profile.nationalOverview.keySwingRegions.map((r, i) => (
+                             {profile.nationalOverview?.keySwingRegions?.map((r, i) => (
                                 <span key={i} className="text-xs bg-slate-700 px-2 py-1 rounded text-slate-300">{r}</span>
                              ))}
                           </div>
                       </div>
                       <div className="bg-slate-800 p-5 rounded-lg border border-slate-700">
                           <p className="text-sm text-slate-400 uppercase font-bold mb-2">Economic Mood</p>
-                          <p className="text-sm text-slate-200 leading-snug">{profile.nationalOverview.economicMood}</p>
+                          <p className="text-sm text-slate-200 leading-snug">{profile.nationalOverview?.economicMood || "Stable"}</p>
                       </div>
                    </div>
 
@@ -434,7 +443,7 @@ export const CandidateList: React.FC<CandidateListProps> = ({ candidates, onUpda
                       <div className="bg-slate-800 rounded-lg border border-slate-700 p-6 space-y-6">
                          {/* News Items */}
                          <div className="grid grid-cols-1 gap-4">
-                            {profile.campaignStrategy.latestNews.map((news, i) => (
+                            {profile.campaignStrategy?.latestNews?.map((news, i) => (
                                <div key={i} className="bg-slate-900/50 p-4 rounded-lg border border-slate-700/50 flex gap-4">
                                   <div className="flex-shrink-0 mt-1">
                                      <Globe size={18} className="text-blue-500" />
@@ -458,7 +467,7 @@ export const CandidateList: React.FC<CandidateListProps> = ({ candidates, onUpda
                                   <Target size={14} /> Tactical Challenges
                                </p>
                                <ul className="space-y-2">
-                                  {profile.campaignStrategy.keyChallenges.map((c, i) => (
+                                  {profile.campaignStrategy?.keyChallenges?.map((c, i) => (
                                      <li key={i} className="text-sm text-red-300 flex items-start gap-2">
                                         <span className="mt-1.5 w-1.5 h-1.5 bg-red-500 rounded-full"></span>
                                         {c}
@@ -471,7 +480,7 @@ export const CandidateList: React.FC<CandidateListProps> = ({ candidates, onUpda
                                   <Crosshair size={14} /> Winning Strategy
                                </p>
                                <p className="text-sm text-slate-300 italic leading-relaxed border-l-2 border-blue-500 pl-3">
-                                  {profile.campaignStrategy.winningStrategy}
+                                  {profile.campaignStrategy?.winningStrategy || "Pending intelligence gathering."}
                                </p>
                             </div>
                          </div>
@@ -479,69 +488,82 @@ export const CandidateList: React.FC<CandidateListProps> = ({ candidates, onUpda
                    </div>
 
                    {/* --- OSINT Dossier --- */}
-                   <div className="bg-slate-800/50 rounded-xl border border-blue-900/30 overflow-hidden">
-                      <div className="bg-slate-800 px-6 py-4 border-b border-slate-700 flex items-center gap-3">
-                         <FileText size={22} className="text-blue-400" />
-                         <h3 className="text-base font-bold text-white uppercase tracking-wide">OSINT Personal Dossier</h3>
+                   <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+                      <div className="bg-slate-900/50 px-6 py-5 border-b border-slate-700 flex items-center justify-between">
+                         <div className="flex items-center gap-3">
+                            <div className="p-2 bg-blue-500/10 rounded text-blue-400">
+                                <FileText size={20} />
+                            </div>
+                            <div>
+                                <h3 className="text-base font-bold text-white uppercase tracking-wide">Forensic OSINT Dossier</h3>
+                                <p className="text-xs text-slate-500">Deep Web & Public Records Scan</p>
+                            </div>
+                         </div>
                       </div>
+                      
                       <div className="p-6 space-y-8">
-                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                         {/* Basic Info */}
+                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-slate-900/30 p-4 rounded-lg border border-slate-700/30">
                             <div className="flex items-start gap-4">
                                 <div className="mt-1 text-slate-500"><Heart size={20} /></div>
                                 <div>
-                                  <p className="text-sm text-slate-400 uppercase font-bold">Marital Status</p>
-                                  <p className="text-base text-slate-200">{profile.osintBackground.maritalStatus}</p>
+                                  <p className="text-xs text-slate-400 uppercase font-bold mb-1">Marital Status</p>
+                                  <p className="text-base text-slate-200 font-medium">{profile.osintBackground?.maritalStatus || "Unknown"}</p>
                                 </div>
                             </div>
                             <div className="flex items-start gap-4">
                                 <div className="mt-1 text-slate-500"><GraduationCap size={20} /></div>
                                 <div>
-                                  <p className="text-sm text-slate-400 uppercase font-bold">Education</p>
-                                  <p className="text-base text-slate-200">{profile.osintBackground.education}</p>
+                                  <p className="text-xs text-slate-400 uppercase font-bold mb-1">Education</p>
+                                  <p className="text-base text-slate-200 font-medium">{profile.osintBackground?.education || "N/A"}</p>
                                 </div>
                             </div>
                          </div>
 
                          <div>
-                            <p className="text-sm text-slate-400 uppercase font-bold mb-2">Lifestyle Analysis</p>
-                            <p className="text-base text-slate-300 bg-slate-900/50 p-4 rounded border border-slate-700/50 italic">
-                               "{profile.osintBackground.lifestyle}"
-                            </p>
-                         </div>
-
-                         {/* Political SitRep */}
-                         <div>
-                            <p className="text-sm text-slate-400 uppercase font-bold mb-2 flex items-center gap-2">
-                               <Activity size={16} className="text-blue-400" /> Political Situation Report (SITREP)
-                            </p>
-                            <div className="bg-blue-900/20 p-4 rounded border border-blue-500/20">
-                               <p className="text-base text-slate-200 leading-relaxed">
-                                  {profile.osintBackground.politicalAnalysis}
-                                </p>
+                            <p className="text-sm text-slate-400 uppercase font-bold mb-2 ml-1">Lifestyle Analysis</p>
+                            <div className="text-base text-slate-300 bg-slate-900 p-5 rounded-lg border border-slate-700 italic relative">
+                               <span className="absolute top-3 left-3 text-slate-600 text-4xl opacity-20">"</span>
+                               <span className="relative z-10">{profile.osintBackground?.lifestyle || "Standard profile."}</span>
                             </div>
                          </div>
 
-                         {/* Digital & Financial Intel */}
-                         {(profile.osintBackground.digitalFootprint || profile.osintBackground.financialIntel) && (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-slate-700/50 pt-6">
-                                <div>
-                                    <p className="text-sm text-slate-400 uppercase font-bold mb-2">Digital Footprint</p>
-                                    <p className="text-sm text-slate-300 leading-relaxed">{profile.osintBackground.digitalFootprint || "Data unavailable."}</p>
+                         {/* Digital & Financial Intel Cards */}
+                         {(profile.osintBackground?.digitalFootprint || profile.osintBackground?.financialIntel) && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="bg-gradient-to-b from-slate-800 to-slate-900 p-6 rounded-xl border border-slate-700 hover:border-blue-500/50 transition-colors shadow-lg">
+                                    <div className="flex items-center gap-3 mb-4 pb-3 border-b border-slate-700/50">
+                                        <div className="p-2 bg-blue-500/10 rounded text-blue-400">
+                                            <Fingerprint size={20} />
+                                        </div>
+                                        <h4 className="font-bold uppercase text-sm text-blue-100">Digital Footprint</h4>
+                                    </div>
+                                    <p className="text-sm text-slate-300 leading-relaxed">
+                                        {profile.osintBackground?.digitalFootprint || "Data unavailable."}
+                                    </p>
                                 </div>
-                                <div>
-                                    <p className="text-sm text-slate-400 uppercase font-bold mb-2">Financial Intelligence</p>
-                                    <p className="text-sm text-slate-300 leading-relaxed">{profile.osintBackground.financialIntel || "Data unavailable."}</p>
+                                
+                                <div className="bg-gradient-to-b from-slate-800 to-slate-900 p-6 rounded-xl border border-slate-700 hover:border-green-500/50 transition-colors shadow-lg">
+                                    <div className="flex items-center gap-3 mb-4 pb-3 border-b border-slate-700/50">
+                                        <div className="p-2 bg-green-500/10 rounded text-green-400">
+                                            <CreditCard size={20} />
+                                        </div>
+                                        <h4 className="font-bold uppercase text-sm text-green-100">Financial Intelligence</h4>
+                                    </div>
+                                    <p className="text-sm text-slate-300 leading-relaxed">
+                                        {profile.osintBackground?.financialIntel || "Data unavailable."}
+                                    </p>
                                 </div>
                             </div>
                          )}
 
                          {/* Network Map */}
-                         {profile.osintBackground.networkMap && profile.osintBackground.networkMap.length > 0 && (
+                         {profile.osintBackground?.networkMap && profile.osintBackground.networkMap.length > 0 && (
                             <div className="border-t border-slate-700/50 pt-6">
-                                <p className="text-sm text-slate-400 uppercase font-bold mb-3">Key Network & Allies</p>
+                                <p className="text-sm text-slate-400 uppercase font-bold mb-3 ml-1">Key Network & Allies</p>
                                 <div className="flex flex-wrap gap-2">
                                     {profile.osintBackground.networkMap.map((ally, i) => (
-                                        <span key={i} className="bg-blue-900/30 text-blue-300 px-3 py-1 rounded-full text-xs border border-blue-500/30">
+                                        <span key={i} className="bg-slate-900 text-slate-300 px-3 py-1.5 rounded-full text-xs border border-slate-700 font-medium hover:border-slate-500 transition-colors cursor-default">
                                             {ally}
                                         </span>
                                     ))}
@@ -549,14 +571,14 @@ export const CandidateList: React.FC<CandidateListProps> = ({ candidates, onUpda
                             </div>
                          )}
 
-                         <div>
-                           <p className="text-sm text-red-400 uppercase font-bold mb-3 flex items-center gap-2">
+                         <div className="border-t border-slate-700/50 pt-6">
+                           <p className="text-sm text-red-400 uppercase font-bold mb-3 flex items-center gap-2 ml-1">
                               <AlertTriangle size={16} /> Reported Controversies
                            </p>
-                           <ul className="space-y-2">
-                              {profile.osintBackground.controversies.map((item, idx) => (
+                           <ul className="space-y-3 bg-red-900/5 p-4 rounded-lg border border-red-900/20">
+                              {profile.osintBackground?.controversies?.map((item, idx) => (
                                  <li key={idx} className="text-sm text-slate-300 flex items-start gap-3">
-                                    <span className="text-red-500 mt-1.5 text-[10px]">●</span>
+                                    <span className="text-red-500 mt-1.5 text-[8px]">●</span>
                                     {item}
                                  </li>
                               ))}
@@ -575,22 +597,22 @@ export const CandidateList: React.FC<CandidateListProps> = ({ candidates, onUpda
                           <div className="flex justify-between items-end mb-4">
                               <div>
                                   <p className="text-xs text-slate-400 uppercase">Total Mentions</p>
-                                  <p className="text-2xl font-bold text-white">{profile.socialPulse.totalMentions.toLocaleString()}</p>
+                                  <p className="text-2xl font-bold text-white">{(profile.socialPulse?.totalMentions || 0).toLocaleString()}</p>
                               </div>
                               <div className="text-right">
                                   <p className="text-xs text-slate-400 uppercase">Net Sentiment</p>
-                                  <p className={`text-xl font-bold ${profile.socialPulse.sentiment.positive > profile.socialPulse.sentiment.negative ? 'text-green-400' : 'text-red-400'}`}>
-                                      {profile.socialPulse.sentiment.positive > profile.socialPulse.sentiment.negative ? '+ Positive' : '- Negative'}
+                                  <p className={`text-xl font-bold ${profile.socialPulse?.sentiment?.positive > profile.socialPulse?.sentiment?.negative ? 'text-green-400' : 'text-red-400'}`}>
+                                      {profile.socialPulse?.sentiment?.positive > profile.socialPulse?.sentiment?.negative ? '+ Positive' : '- Negative'}
                                   </p>
                               </div>
                           </div>
                           <div className="w-full h-4 bg-slate-700 rounded-full overflow-hidden flex mb-4">
-                              <div className="bg-green-500 h-full" style={{width: `${profile.socialPulse.sentiment.positive}%`}}></div>
-                              <div className="bg-slate-500 h-full" style={{width: `${profile.socialPulse.sentiment.neutral}%`}}></div>
-                              <div className="bg-red-500 h-full" style={{width: `${profile.socialPulse.sentiment.negative}%`}}></div>
+                              <div className="bg-green-500 h-full" style={{width: `${profile.socialPulse?.sentiment?.positive || 0}%`}}></div>
+                              <div className="bg-slate-500 h-full" style={{width: `${profile.socialPulse?.sentiment?.neutral || 0}%`}}></div>
+                              <div className="bg-red-500 h-full" style={{width: `${profile.socialPulse?.sentiment?.negative || 0}%`}}></div>
                           </div>
                           <div className="flex flex-wrap gap-2">
-                              {profile.socialPulse.trendingTopics.map((t, i) => (
+                              {profile.socialPulse?.trendingTopics?.map((t, i) => (
                                   <span key={i} className="text-xs px-2 py-1 bg-slate-700 rounded text-slate-300">{t}</span>
                               ))}
                           </div>
@@ -602,7 +624,7 @@ export const CandidateList: React.FC<CandidateListProps> = ({ candidates, onUpda
                               <History size={18} className="text-orange-500" /> Political History
                           </h3>
                           <ul className="space-y-4">
-                             {profile.politicalHistory.map((h, i) => (
+                             {profile.politicalHistory?.map((h, i) => (
                                 <li key={i} className="flex justify-between items-center border-b border-slate-700/50 pb-2 last:border-0 last:pb-0">
                                    <div>
                                       <p className="text-sm font-bold text-white">{h.year} Election</p>

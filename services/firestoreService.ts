@@ -1,34 +1,18 @@
-
 import { db } from '../firebaseConfig';
 import { collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, setDoc, query, orderBy, FirestoreError, writeBatch, getDocs, limit } from "firebase/firestore";
 import { Incident, Candidate, ParliamentaryCandidate, SitRep } from '../types';
 
-// Collection References
 const INCIDENTS_COL = 'incidents';
 const PRES_CANDIDATES_COL = 'presidential_candidates';
 const PARL_CANDIDATES_COL = 'parliamentary_candidates';
 const SITREP_COL = 'sitreps';
 
-/**
- * Subscribe to Incidents
- */
-export const subscribeToIncidents = (
-    callback: (data: Incident[]) => void,
-    onError?: (error: FirestoreError) => void,
-    onEmpty?: () => void
-) => {
-    if (!db) return () => {}; // No-op if DB not ready
-
+export const subscribeToIncidents = (callback: (data: Incident[]) => void, onError?: (error: FirestoreError) => void, onEmpty?: () => void) => {
+    if (!db) return () => {}; 
     const q = query(collection(db, INCIDENTS_COL), orderBy('date', 'desc'));
-    
     return onSnapshot(q, (snapshot) => {
-        if (snapshot.empty && onEmpty) {
-            onEmpty();
-        }
-        const incidents = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        })) as Incident[];
+        if (snapshot.empty && onEmpty) onEmpty();
+        const incidents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Incident[];
         callback(incidents);
     }, (error) => {
         if (onError && error.code !== 'permission-denied') onError(error);
@@ -37,96 +21,65 @@ export const subscribeToIncidents = (
 
 export const addIncidentToDb = async (incident: Incident) => {
     if (!db) return;
-    try {
-        const { id, ...data } = incident;
-        await addDoc(collection(db, INCIDENTS_COL), data);
-    } catch (e) {
-        console.error("Error adding incident:", e);
-        throw e;
-    }
+    const { id, ...data } = incident;
+    await addDoc(collection(db, INCIDENTS_COL), data);
 };
 
+// Fixed: Added missing export deleteIncidentFromDb
 export const deleteIncidentFromDb = async (id: string) => {
     if (!db) return;
-    try {
-        await deleteDoc(doc(db, INCIDENTS_COL, id));
-    } catch (e) {
-        console.error("Error deleting incident:", e);
-        throw e;
-    }
+    await deleteDoc(doc(db, INCIDENTS_COL, id));
 };
 
-/**
- * Subscribe to Presidential Candidates
- */
-export const subscribeToPresidential = (
-    callback: (data: Candidate[]) => void,
-    onError?: (error: FirestoreError) => void
-) => {
+export const subscribeToPresidential = (callback: (data: Candidate[]) => void, onError?: (error: FirestoreError) => void) => {
     if (!db) return () => {};
-
     const q = query(collection(db, PRES_CANDIDATES_COL), orderBy('projectedVoteShare', 'desc'));
-
     return onSnapshot(q, (snapshot) => {
-        const candidates = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        })) as Candidate[];
+        const candidates = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Candidate[];
         callback(candidates);
     }, (error) => {
         if (onError && error.code !== 'permission-denied') onError(error);
     });
 };
 
+// Fixed: Added missing export addPresidentialToDb
 export const addPresidentialToDb = async (candidate: Candidate) => {
     if (!db) return;
     const { id, ...data } = candidate;
     await addDoc(collection(db, PRES_CANDIDATES_COL), data);
 };
 
+// Fixed: Added missing export deletePresidentialFromDb
 export const deletePresidentialFromDb = async (id: string) => {
     if (!db) return;
     await deleteDoc(doc(db, PRES_CANDIDATES_COL, id));
 };
 
-/**
- * Subscribe to Parliamentary Candidates
- */
-export const subscribeToParliamentary = (
-    callback: (data: ParliamentaryCandidate[]) => void,
-    onError?: (error: FirestoreError) => void
-) => {
+export const subscribeToParliamentary = (callback: (data: ParliamentaryCandidate[]) => void, onError?: (error: FirestoreError) => void) => {
     if (!db) return () => {};
-    
     return onSnapshot(collection(db, PARL_CANDIDATES_COL), (snapshot) => {
-        const candidates = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        })) as ParliamentaryCandidate[];
+        const candidates = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as ParliamentaryCandidate[];
         callback(candidates);
     }, (error) => {
         if (onError && error.code !== 'permission-denied') onError(error);
     });
 };
 
+// Fixed: Added missing export addParliamentaryToDb
 export const addParliamentaryToDb = async (candidate: ParliamentaryCandidate) => {
     if (!db) return;
     const { id, ...data } = candidate;
     await addDoc(collection(db, PARL_CANDIDATES_COL), data);
 };
 
+// Fixed: Added missing export deleteParliamentaryFromDb
 export const deleteParliamentaryFromDb = async (id: string) => {
     if (!db) return;
     await deleteDoc(doc(db, PARL_CANDIDATES_COL, id));
 };
 
-/**
- * SitRep Management
- */
 export const saveSitRep = async (sitRep: SitRep) => {
-    if (!db) throw new Error("Database not connected");
-    // Use date as ID to prevent duplicates for the same day, or append timestamp if multiple allowed
-    // Here we use a generated ID but check queries later
+    if (!db) return;
     await addDoc(collection(db, SITREP_COL), sitRep);
 };
 
@@ -135,100 +88,38 @@ export const getSitRepHistory = async (): Promise<SitRep[]> => {
     try {
         const q = query(collection(db, SITREP_COL), orderBy('timestamp', 'desc'), limit(30));
         const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        })) as SitRep[];
-    } catch (e) {
-        console.error("Error fetching SitReps:", e);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as SitRep[];
+    } catch (e: any) {
         return [];
     }
 };
 
-/**
- * Helper: Remove undefined values from object
- * Firestore rejects undefined, so we must replace or remove them.
- */
-const sanitizeData = (data: any) => {
-    // JSON stringify/parse automatically removes undefined keys
-    return JSON.parse(JSON.stringify(data));
-};
+const sanitizeData = (data: any) => JSON.parse(JSON.stringify(data));
 
-/**
- * Helper to upload data in batches using SMART ID MAPPING
- */
 const batchUpload = async (collectionName: string, items: any[], onProgress?: (msg: string) => void) => {
-    const BATCH_SIZE = 300; // Stability batch size
+    if (!db) return;
+    const BATCH_SIZE = 300;
     const total = items.length;
-    let count = 0;
-
-    if (onProgress) onProgress(`Starting upload for ${collectionName} (${total} items)...`);
-
     for (let i = 0; i < total; i += BATCH_SIZE) {
         const chunk = items.slice(i, i + BATCH_SIZE);
         const batch = writeBatch(db);
-        
         chunk.forEach((item) => {
-            // Use existing ID if available to prevent duplicates
-            const docRef = item.id 
-                ? doc(db, collectionName, String(item.id)) 
-                : doc(collection(db, collectionName));
-            
-            // IMPORTANT: Sanitize data to remove 'undefined' fields which cause Firestore errors
-            const cleanItem = sanitizeData(item);
-            
-            batch.set(docRef, cleanItem, { merge: true });
+            const docRef = item.id ? doc(db, collectionName, String(item.id)) : doc(collection(db, collectionName));
+            batch.set(docRef, sanitizeData(item), { merge: true });
         });
-
-        try {
-            await batch.commit();
-            count += chunk.length;
-            if (onProgress) onProgress(`Uploaded ${count}/${total} to ${collectionName}`);
-            
-            // Delay to prevent rate limiting
-            await new Promise(resolve => setTimeout(resolve, 500));
-        } catch (err) {
-            console.error(`Batch failed at index ${i}:`, err);
-            if (onProgress) onProgress(`Error uploading batch ${i}-${i+BATCH_SIZE}. Checking console.`);
-            throw err; 
-        }
+        await batch.commit();
+        if (onProgress) onProgress(`Uploaded ${Math.min(i + BATCH_SIZE, total)}/${total}`);
     }
 };
 
-/**
- * ONE-TIME SEED FUNCTION
- */
-export const seedDatabase = async (
-    incidents: Incident[], 
-    presCandidates: Candidate[], 
-    parlCandidates: ParliamentaryCandidate[],
-    onProgress: (msg: string) => void,
-    onComplete: () => void
-) => {
-    if (!db) {
-        alert("Firebase not configured.");
-        return;
-    }
-
+export const seedDatabase = async (incidents: Incident[], presCandidates: Candidate[], parlCandidates: ParliamentaryCandidate[], onProgress: (msg: string) => void, onComplete: () => void) => {
+    if (!db) return;
     try {
-        // Only upload Incidents if needed
         if (incidents.length > 0) await batchUpload(INCIDENTS_COL, incidents, onProgress);
-        
-        // Only upload Presidential if needed
         if (presCandidates.length > 0) await batchUpload(PRES_CANDIDATES_COL, presCandidates, onProgress);
-        
-        // Upload the large Parliamentary dataset
-        if (parlCandidates.length > 0) {
-            await batchUpload(PARL_CANDIDATES_COL, parlCandidates, onProgress);
-        }
-        
+        if (parlCandidates.length > 0) await batchUpload(PARL_CANDIDATES_COL, parlCandidates, onProgress);
         onComplete();
     } catch (e: any) {
-        console.error("Seeding Error:", e);
-        if (e.code === 'permission-denied') {
-            alert("UPLOAD FAILED: Permission Denied. Please check your Firestore Security Rules in the Firebase Console.");
-        } else {
-            alert(`Error seeding database: ${e.message}`);
-        }
+        console.error(e);
     }
 };

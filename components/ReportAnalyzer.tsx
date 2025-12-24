@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { generateDeepMindAnalysis } from '../services/geminiService';
-import { Sparkles, BrainCircuit, Send, User, Quote, Scroll, History, BookOpen, Printer, Download, Share2, Mail, Twitter } from 'lucide-react';
+import { Sparkles, BrainCircuit, Send, User, Quote, Scroll, History, BookOpen, Printer, Download, Share2, Mail, Twitter, Facebook, Linkedin } from 'lucide-react';
 
 declare global {
     interface Window {
@@ -62,23 +61,28 @@ export const ReportAnalyzer: React.FC = () => {
         // Clone node to ensure we capture everything even if scrolled, offscreen
         const clonedElement = originalElement.cloneNode(true) as HTMLElement;
         
-        // Setup clone styles for full capture
+        // Setup clone styles for full capture - Force white background and standardized width
         Object.assign(clonedElement.style, {
             position: 'fixed',
             top: '-10000px',
             left: '-10000px',
-            width: '1000px', // Standardize width
+            width: '1000px', // Standardize width for consistent PDF
             height: 'auto',
             overflow: 'visible',
-            zIndex: '-1000'
+            zIndex: '-1000',
+            backgroundColor: '#ffffff',
+            padding: '40px'
         });
         
         document.body.appendChild(clonedElement);
 
+        // High scale for crisp text
         const canvas = await window.html2canvas(clonedElement, { 
             scale: 2,
             useCORS: true,
-            backgroundColor: '#ffffff'
+            backgroundColor: '#ffffff',
+            logging: false,
+            windowWidth: 1000
         });
         
         document.body.removeChild(clonedElement);
@@ -89,7 +93,7 @@ export const ReportAnalyzer: React.FC = () => {
         
         const { jsPDF } = window.jspdf;
         
-        // One page PDF matching content dimensions exactly
+        // One page PDF matching content dimensions exactly (Digital Scroll format)
         const pdf = new jsPDF({
             orientation: imgWidth > imgHeight ? 'l' : 'p',
             unit: 'px',
@@ -108,7 +112,6 @@ export const ReportAnalyzer: React.FC = () => {
   const handleEmailReport = () => {
     if (!report) return;
     const subject = encodeURIComponent(`Salus Intelligence Report: ${report.title}`);
-    // Formatting the body for readability
     const body = encodeURIComponent(
         `CONFIDENTIAL INTELLIGENCE BRIEF\n\n` +
         `TITLE: ${report.title}\n\n` +
@@ -127,6 +130,16 @@ export const ReportAnalyzer: React.FC = () => {
     window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank');
   };
 
+  const handleShareFacebook = () => {
+    const url = encodeURIComponent(window.location.href);
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank');
+  };
+
+  const handleShareLinkedIn = () => {
+    const url = encodeURIComponent(window.location.href);
+    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank');
+  };
+
   const handleShare = async () => {
     if (navigator.share) {
         try {
@@ -139,7 +152,7 @@ export const ReportAnalyzer: React.FC = () => {
             console.log('Error sharing:', error);
         }
     } else {
-        alert("Sharing not supported on this browser. Copying URL to clipboard.");
+        alert("Native sharing not supported on this browser. Copying URL.");
         navigator.clipboard.writeText(window.location.href);
     }
   };
@@ -224,12 +237,37 @@ export const ReportAnalyzer: React.FC = () => {
                     >
                         <Mail size={16} /> Email Report
                     </button>
-                    <button 
-                        onClick={handleShareTwitter}
-                        className="flex items-center gap-2 px-4 py-2 bg-[#1DA1F2] hover:bg-[#1a91da] text-white rounded-lg transition-colors text-sm font-medium"
-                    >
-                        <Twitter size={16} /> Tweet
-                    </button>
+                    <div className="flex items-center gap-1 bg-slate-700 rounded-lg p-1">
+                         <button 
+                            onClick={handleShareTwitter}
+                            className="p-1.5 hover:bg-slate-600 text-[#1DA1F2] rounded transition-colors"
+                            title="Share on Twitter"
+                        >
+                            <Twitter size={18} />
+                        </button>
+                        <button 
+                            onClick={handleShareFacebook}
+                            className="p-1.5 hover:bg-slate-600 text-[#1877F2] rounded transition-colors"
+                            title="Share on Facebook"
+                        >
+                            <Facebook size={18} />
+                        </button>
+                        <button 
+                            onClick={handleShareLinkedIn}
+                            className="p-1.5 hover:bg-slate-600 text-[#0A66C2] rounded transition-colors"
+                            title="Share on LinkedIn"
+                        >
+                            <Linkedin size={18} />
+                        </button>
+                         <button 
+                            onClick={handleShare}
+                            className="p-1.5 hover:bg-slate-600 text-white rounded transition-colors"
+                            title="More Options"
+                        >
+                            <Share2 size={18} />
+                        </button>
+                    </div>
+                   
                     <button 
                         onClick={handleDownloadPDF}
                         className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors text-sm font-medium"
@@ -241,12 +279,6 @@ export const ReportAnalyzer: React.FC = () => {
                         className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors text-sm font-medium"
                     >
                         <Printer size={16} /> Print
-                    </button>
-                    <button 
-                        onClick={handleShare}
-                        className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors text-sm font-medium"
-                    >
-                        <Share2 size={16} /> Share
                     </button>
                 </div>
 
@@ -306,7 +338,7 @@ export const ReportAnalyzer: React.FC = () => {
                                 Voices from the Council
                             </h3>
                             
-                            {report.councilVoices.map((voice, idx) => (
+                            {report.councilVoices?.map((voice, idx) => (
                                 <div key={idx} className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow relative group break-inside-avoid">
                                     <div className="absolute -left-1 top-6 w-1 h-12 bg-purple-600 rounded-r opacity-0 group-hover:opacity-100 transition-opacity"></div>
                                     <div className="flex items-center gap-2 mb-3">

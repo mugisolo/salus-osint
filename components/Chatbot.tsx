@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageSquare, Send, X, Minimize2, Maximize2, BrainCircuit, Loader2 } from 'lucide-react';
 import { chatWithAnalyst } from '../services/geminiService';
@@ -9,7 +8,7 @@ export const Chatbot: React.FC = () => {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<{role: 'user' | 'model', text: string}[]>([
-    { role: 'model', text: "Salus Intelligence Analyst online. I can provide insights on the 2026 Uganda Elections, dashboard metrics, or candidate strategies. How can I assist?" }
+    { role: 'model', text: "Salus Intel Analyst online. I can provide insights on the 2026 Uganda Elections, dashboard metrics, or candidate strategies. How can I assist?" }
   ]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -59,7 +58,7 @@ export const Chatbot: React.FC = () => {
       <div className="h-14 bg-slate-800 border-b border-slate-700 flex items-center justify-between px-4 shrink-0 cursor-pointer" onClick={() => isMinimized && setIsMinimized(false)}>
         <div className="flex items-center gap-2">
           <BrainCircuit size={20} className="text-blue-400" />
-          <span className="font-bold text-white text-sm">Salus Analyst</span>
+          <span className="font-bold text-white text-sm">Salus Intel Analyst</span>
           <span className="flex h-2 w-2 relative ml-1">
              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
